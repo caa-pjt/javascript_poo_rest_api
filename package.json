@@ -1,0 +1,15 @@
+{
+  "name": "js-rest-api",
+  "version": "1.0.0",
+  "description": "simple rest js api",
+  "main": "app.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "serve": "live-server --port=6800",
+    "http:server": "http-server -p 8080 --cors"
+  },
+  "author": "Carlos Antunes",
+  "license": "MIT",
+  "devDependencies": {
+  }
+}
