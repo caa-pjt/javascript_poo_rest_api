@@ -1,0 +1,35 @@
+{
+  "posts": [
+    {
+      "id": "f686",
+      "title": "Bonjour"
+    },
+    {
+      "id": "c7d2",
+      "title": "Super"
+    },
+    {
+      "id": "7979",
+      "title": "Super bouleau 2"
+    },
+    {
+      "id": "c956",
+      "title": "test"
+    }
+  ],
+  "comments": [
+    {
+      "id": "1",
+      "text": "a comment about post 1",
+      "postId": null
+    },
+    {
+      "id": "2",
+      "text": "another comment about post 1",
+      "postId": null
+    }
+  ],
+  "profile": {
+    "name": "typicode"
+  }
+}

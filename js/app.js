@@ -1,37 +1,49 @@
 import { MyApi } from './api/Api.js';
-import { Table } from './templates/table.js';
+import { Table } from './templates/Table.js';
+import { Modal } from './templates/Modal.js';
+
 
 class App {
     constructor() {
-        this.api = new MyApi('https://jsonplaceholder.typicode.com/posts');
-        this.table = new Table(this.api, this);
+        this.api = new MyApi('http://localhost:3000/posts');
+        this.modal = new Modal();
+        this.table = new Table(this, 3);
+        this.addItem = document.getElementById('add-new');
     }
 
+    // Méthode d'initialisation de l'application
     async init() {
-        await this.table.fetchData();
+        const data = await this.api.getData();
+        await this.table.fetchData(data);
+
+        this.addItem.addEventListener('click', () => this.showEditForm());
     }
 
-    async showEditForm(id) {
+    // Méthode pour afficher le formulaire d'édition
+    async showEditForm(id = null) {
         const item = this.table.data.find(d => d.id === id);
-        const formContainer = document.getElementById('form-container');
-        console.log(formContainer);
-        formContainer.innerHTML = `
-            <form id="edit-form">
-                <div class="form-group">
-                    <label for="edit-title">Title</label>
-                    <input type="text" class="form-control" id="edit-title" value="${item.title}">
-                </div>
-                <button type="submit" class="btn btn-primary">Save</button>
-            </form>
-        `;
+        this.modal.renderEditForm(item);
 
-        document.getElementById('edit-form').addEventListener('submit', async (event) => {
+        const editForm = document.getElementById('edit-form');
+        editForm.addEventListener('submit', async (event) => {
             event.preventDefault();
+            if (!id) {
+                const newItem = {
+                    title: document.getElementById('edit-title').value
+                };
+                const data = await this.api.addData(newItem);
+                await this.table.fetchData(data);
+                this.modal.hide();
+                return;
+            }
             item.title = document.getElementById('edit-title').value;
-            let test = await this.api.updateData(id, item);
-            console.log("App", test);
-            await this.table.fetchData();
+
+            const data = await this.api.updateData(id, item);
+            await this.table.fetchData(data);
+            this.modal.hide();
         });
+
+        this.modal.show();
     }
 
     async deleteRow(id) {

@@ -4,12 +4,15 @@
   "description": "simple rest js api",
   "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "json:server": "json-server --watch data/db.json --port 3000",
     "serve": "live-server --port=6800",
     "http:server": "http-server -p 8080 --cors"
   },
   "author": "Carlos Antunes",
   "license": "MIT",
+  "dependencies": {
+    "json-server": "^1.0.0-beta.1"
+  },
   "devDependencies": {
   }
 }
