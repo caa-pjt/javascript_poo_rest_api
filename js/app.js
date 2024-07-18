@@ -7,13 +7,24 @@ class App {
     constructor() {
         this.api = new MyApi('http://localhost:3000/posts');
         this.modal = new Modal();
-        this.table = new Table(this, 3);
         this.addItem = document.getElementById('add-new');
     }
 
     // Méthode d'initialisation de l'application
     async init() {
         const data = await this.api.getData();
+
+        // Définir les options par défaut pour la table
+        const tableOptions = {
+            data: data,
+            rowsPerPage: 2,
+            sortColumn: 'id',
+            sortOrder: 'asc'
+        };
+
+        // Créer une instance de Table avec les options
+        this.table = new Table(this, tableOptions);
+
         await this.table.fetchData(data);
 
         this.addItem.addEventListener('click', () => this.showEditForm());

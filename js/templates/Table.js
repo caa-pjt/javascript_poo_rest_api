@@ -1,11 +1,11 @@
 export class Table {
-    constructor(app, rowsPerPage = 10) {
+    constructor(app, options = {}) {
         this.app = app;
-        this.data = [];
+        this.data = options.data || [];
         this.currentPage = 1;
-        this.rowsPerPage = rowsPerPage;
-        this.sortColumn = 'id';
-        this.sortOrder = 'asc';
+        this.rowsPerPage = options.rowsPerPage || 10;
+        this.sortColumn = options.sortColumn || 'id';
+        this.sortOrder = options.sortOrder || 'asc';
     }
 
     async fetchData(data) {
