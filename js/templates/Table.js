@@ -8,6 +8,9 @@ export class Table {
         this.sortColumn = options.sortColumn || 'id';
         this.sortOrder = options.sortOrder || 'asc';
         this.showEditForm = showEditForm;
+        this.totalPages = 0;
+
+        this.updateTotalPages();
 
         this.render();
     }
@@ -86,12 +89,16 @@ export class Table {
         });
     }
 
+    updateTotalPages() {
+        this.totalPages = Math.ceil(this.data.length / this.rowsPerPage);
+    }
+
     renderPagination() {
         const pagination = document.getElementById('pagination');
         pagination.innerHTML = '';
         if (this.data.length > this.rowsPerPage) {
-            const totalPages = Math.ceil(this.data.length / this.rowsPerPage);
-            for (let i = 1; i <= totalPages; i++) {
+            // const totalPages = Math.ceil(this.data.length / this.rowsPerPage);
+            for (let i = 1; i <= this.totalPages; i++) {
                 const li = document.createElement('li');
                 li.className = 'page-item' + (i === this.currentPage ? ' active' : '');
                 li.innerHTML = `<a class="page-link" href="#">${i}</a>`;
@@ -196,9 +203,25 @@ export class Table {
     }
 
     deleteRow(id) {
+        // Supprimer la ligne du tableau
         const tr = document.querySelector(`tr[data-id="${id}"]`);
         if (tr) {
             tr.remove();
         }
+
+        // Supprimer l'élément du tableau des données
+        this.data = this.data.filter(item => item.id !== id);
+
+        // Mettre à jour le nombre total de pages
+        this.updateTotalPages();
+
+        // Si la page actuelle dépasse le nombre total de pages, revenir à la page précédente
+        if (this.currentPage > this.totalPages) {
+            this.currentPage = this.totalPages;
+        }
+
+        // Recalculer la pagination et rendre la table
+        this.renderTable();
+        this.renderPagination();
     }
 }
