@@ -51,18 +51,18 @@ class App {
                 const data = await this.api.addData(newItem);
                 if (data.hasOwnProperty('id')) {
                     this.subject.notify({ type: 'add', data });
-                    alert('Item added successfully!');
+                    this.toaster('Article ajouté avec succès!');
                 } else {
-                    alert('An error occurred while adding the item!');
+                    this.toaster("Une erreur s'est produite lors de l'ajout de l'article!", 'error');
                 }
             } else {
                 item.title = title;
                 const data = await this.api.updateData(id, item);
                 if (data.hasOwnProperty('id')) {
                     this.subject.notify({ type: 'update', data });
-                    alert('Item updated successfully!');
+                    this.toaster('Article mis à jour avec succès!');
                 }else {
-                    alert('An error occurred while updating the item!');
+                    this.toaster("Une erreur s'est produite lors de la mise à jour de l'article!", 'error');
                 }
             }
             this.modal.hide();
@@ -76,9 +76,9 @@ class App {
         const data = await this.api.deleteData(id);
         if (data.hasOwnProperty('id')) {
             this.subject.notify({ type: 'delete', id });
-            alert('Item deleted successfully!');
+            this.toaster("Article supprimé avec succès!");
         }else {
-            alert('An error occurred while deleting the item!');
+            this.toaster("Une erreur s'est produite lors de la suppression de l'article!", 'error');
         }
     }
 
@@ -92,6 +92,28 @@ class App {
         } else if (notification.type === 'edit') {
             this.showEditForm(notification.id).then(r => console.log('Edit form displayed')); // Log for debugging
         }
+    }
+
+    toaster(message, type = 'success') {
+
+        toastr.options = {
+            "closeButton": false,
+            "debug": false,
+            "newestOnTop": false,
+            "progressBar": false,
+            "positionClass": "toast-bottom-right",
+            "preventDuplicates": false,
+            "onclick": null,
+            "showDuration": "300",
+            "hideDuration": "1000",
+            "timeOut": "5000",
+            "extendedTimeOut": "1000",
+            "showEasing": "swing",
+            "hideEasing": "linear",
+            "showMethod": "fadeIn",
+            "hideMethod": "fadeOut"
+        }
+        toastr[type](message);
     }
 }
 const app = new App();
