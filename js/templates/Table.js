@@ -1,16 +1,29 @@
 export class Table {
-    constructor(app, options = {}) {
-        this.app = app;
-        this.data = options.data || [];
+    constructor(subject, options = {}) {
+        this.subject = subject;
+        this.subject.subscribe(this);
+        this.data = Array.isArray(options.data) ? options.data : [];
         this.currentPage = 1;
         this.rowsPerPage = options.rowsPerPage || 10;
         this.sortColumn = options.sortColumn || 'id';
         this.sortOrder = options.sortOrder || 'asc';
+        this.render();
     }
 
     async fetchData(data) {
-        this.data = data;
+        this.data = Array.isArray(data) ? data : [];
         this.render();
+    }
+
+    update(notification) {
+        if (notification.type === 'update') {
+            this.data = Array.isArray(notification.data) ? notification.data : [];
+            this.render();
+        } else if (notification.type === 'edit') {
+            // Ne pas réinitialiser les données
+        } else if (notification.type === 'delete') {
+            // Peut-être mettre à jour pour les suppressions, si nécessaire
+        }
     }
 
     render() {
@@ -34,7 +47,6 @@ export class Table {
         <nav class="d-flex justify-content-end">
             <ul class="pagination justify-content-center" id="pagination"></ul>
         </nav>
-        <div id="form-container"></div>
     `;
 
         this.renderTable();
@@ -63,7 +75,6 @@ export class Table {
             `;
             tbody.appendChild(tr);
         });
-
     }
 
     renderPagination() {
@@ -92,7 +103,7 @@ export class Table {
         // Ajoute un événement de clic pour chaque bouton de tri
         sortButtons.forEach(button => {
             button.addEventListener('click', () => {
-                const column = button.id.split('-')[1]; // Récupère le nom de la colonne
+                const column = button.id.split('-')[1];
                 this.sortData(column);
             });
         });
@@ -100,14 +111,17 @@ export class Table {
         document.querySelectorAll('.edit-btn').forEach((button) => {
             button.addEventListener('click', (event) => {
                 let id = event.target.dataset.id;
-                this.app.showEditForm(id || null);
+                console.log('Edit button clicked, id:', id);
+                console.log('Before notify:', this.data); // Ajout du log avant notify
+                this.subject.notify({ type: 'edit', id });
+                console.log('After notify:', this.data); // Ajout du log après notify
             });
         });
 
         document.querySelectorAll('.delete-btn').forEach((button) => {
             button.addEventListener('click', (event) => {
                 const id = event.target.dataset.id;
-                this.app.deleteRow(id);
+                this.subject.notify({ type: 'delete', id });
             });
         });
     }
