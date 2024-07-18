@@ -2,6 +2,7 @@ import { MyApi } from './api/Api.js';
 import { Table } from './templates/Table.js';
 import { Modal } from './templates/Modal.js';
 import { Subject } from './observers/Subject.js';
+import { Toaster } from './templates/Toaster.js';
 
 class App {
     constructor() {
@@ -51,18 +52,18 @@ class App {
                 const data = await this.api.addData(newItem);
                 if (data.hasOwnProperty('id')) {
                     this.subject.notify({ type: 'add', data });
-                    this.toaster('Article ajouté avec succès!');
+                    Toaster.createToaster('Article ajouté avec succès!');
                 } else {
-                    this.toaster("Une erreur s'est produite lors de l'ajout de l'article!", 'error');
+                    Toaster.createToaster("Une erreur s'est produite lors de l'ajout de l'article!", 'danger');
                 }
             } else {
                 item.title = title;
                 const data = await this.api.updateData(id, item);
                 if (data.hasOwnProperty('id')) {
                     this.subject.notify({ type: 'update', data });
-                    this.toaster('Article mis à jour avec succès!');
+                    Toaster.createToaster('Article mis à jour avec succès!');
                 }else {
-                    this.toaster("Une erreur s'est produite lors de la mise à jour de l'article!", 'error');
+                    Toaster.createToaster("Une erreur s'est produite lors de la mise à jour de l'article!", 'danger');
                 }
             }
             this.modal.hide();
@@ -76,9 +77,9 @@ class App {
         const data = await this.api.deleteData(id);
         if (data.hasOwnProperty('id')) {
             this.subject.notify({ type: 'delete', id });
-            this.toaster("Article supprimé avec succès!");
+            Toaster.createToaster("Article supprimé avec succès!");
         }else {
-            this.toaster("Une erreur s'est produite lors de la suppression de l'article!", 'error');
+            Toaster.createToaster("Une erreur s'est produite lors de la suppression de l'article!", 'danger');
         }
     }
 
@@ -94,27 +95,6 @@ class App {
         }
     }
 
-    toaster(message, type = 'success') {
-
-        toastr.options = {
-            "closeButton": false,
-            "debug": false,
-            "newestOnTop": false,
-            "progressBar": false,
-            "positionClass": "toast-bottom-right",
-            "preventDuplicates": false,
-            "onclick": null,
-            "showDuration": "300",
-            "hideDuration": "1000",
-            "timeOut": "5000",
-            "extendedTimeOut": "1000",
-            "showEasing": "swing",
-            "hideEasing": "linear",
-            "showMethod": "fadeIn",
-            "hideMethod": "fadeOut"
-        }
-        toastr[type](message);
-    }
 }
 const app = new App();
 app.init();
