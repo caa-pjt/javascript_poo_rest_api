@@ -10,6 +10,12 @@ class App {
         this.addItem = document.getElementById('add-new');
         this.subject = new Subject();
         this.subject.subscribe(this);
+
+        // Lier les méthodes pour conserver le contexte `this`
+        //this.init = this.init.bind(this);
+        this.showEditForm = this.showEditForm.bind(this);
+        //this.deleteRow = this.deleteRow.bind(this);
+        // this.update = this.update.bind(this);
     }
 
     // Méthode d'initialisation de l'application
@@ -25,8 +31,7 @@ class App {
         };
 
         // Créer une instance de Table avec les options
-        this.table = new Table(this.subject, tableOptions);
-
+        this.table = new Table(this.subject, tableOptions, this.showEditForm);
         await this.table.fetchData(data);
 
         this.addItem.addEventListener('click', () => this.showEditForm());
@@ -44,11 +49,21 @@ class App {
             if (!id) {
                 const newItem = { title };
                 const data = await this.api.addData(newItem);
-                this.subject.notify({ type: 'update', data });
+                if (data.hasOwnProperty('id')) {
+                    this.subject.notify({ type: 'add', data });
+                    alert('Item added successfully!');
+                } else {
+                    alert('An error occurred while adding the item!');
+                }
             } else {
                 item.title = title;
                 const data = await this.api.updateData(id, item);
-                this.subject.notify({ type: 'update', data });
+                if (data.hasOwnProperty('id')) {
+                    this.subject.notify({ type: 'update', data });
+                    alert('Item updated successfully!');
+                }else {
+                    alert('An error occurred while updating the item!');
+                }
             }
             this.modal.hide();
         };
@@ -57,23 +72,27 @@ class App {
     }
 
     async deleteRow(id) {
-        await this.api.deleteData(id);
-        const data = await this.api.getData();
-        this.subject.notify({ type: 'update', data });
+        console.log('Deleting row with ID:', id); // Log for debugging
+        const data = await this.api.deleteData(id);
+        if (data.hasOwnProperty('id')) {
+            this.subject.notify({ type: 'delete', id });
+            alert('Item deleted successfully!');
+        }else {
+            alert('An error occurred while deleting the item!');
+        }
     }
 
     update(notification) {
-        if (notification.type === 'update') {
-            const data = Array.isArray(notification.data) ? notification.data : [];
-            console.log('Updating table with data:', data);
-            this.table.update(data);
-        } else if (notification.type === 'edit') {
-            this.showEditForm(notification.id);
+        console.log('Notification received:', notification); // Log for debugging
+        if (notification.type === 'update' || notification.type === 'add') {
+            this.table.update(notification.data);
         } else if (notification.type === 'delete') {
-            this.deleteRow(notification.id);
+            this.deleteRow(notification.id).then(r => console.log('Row deleted')); // Log for debugging
+            //this.table.deleteRow(notification.id);
+        } else if (notification.type === 'edit') {
+            this.showEditForm(notification.id).then(r => console.log('Edit form displayed')); // Log for debugging
         }
     }
 }
 const app = new App();
 app.init();
-
