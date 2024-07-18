@@ -12,7 +12,8 @@ export class Api {
     deleteData(id) {
         return fetch(`${this._url}/${id}`, {
             method: 'DELETE',
-        }).then((response) => response.json());
+        }).then((response) => response.json()).catch((error) => console.error(error));
+
     }
 
     updateData(id, data) {

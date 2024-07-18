@@ -10,6 +10,10 @@ class App {
         this.modal = new Modal();
         this.addItem = document.getElementById('add-new');
         this.subject = new Subject();
+
+        this.deletionInProgress = false; // Flag pour contrôler les notifications redondantes
+
+        // App is observing itself
         this.subject.subscribe(this);
 
         // Lier les méthodes pour conserver le contexte `this`
@@ -26,16 +30,24 @@ class App {
         // Définir les options par défaut pour la table
         const tableOptions = {
             data: Array.isArray(data) ? data : [],
-            rowsPerPage: 10,
+            rowsPerPage: 5,
             sortColumn: 'id',
             sortOrder: 'asc'
         };
 
         // Créer une instance de Table avec les options
-        this.table = new Table(this.subject, tableOptions, this.showEditForm);
-        await this.table.fetchData(data);
+        this.createTable(tableOptions, data);
 
         this.addItem.addEventListener('click', () => this.showEditForm());
+    }
+
+    createTable(tableOptions, data) {
+        if (this.table) {
+            this.table.destroy();
+        }
+
+        this.table = new Table(this.subject, tableOptions, this.showEditForm);
+        this.table.fetchData(data);
     }
 
     // Méthode pour afficher le formulaire d'édition
@@ -62,7 +74,7 @@ class App {
                 if (data.hasOwnProperty('id')) {
                     this.subject.notify({ type: 'update', data });
                     Toaster.createToaster('Article mis à jour avec succès!');
-                }else {
+                } else {
                     Toaster.createToaster("Une erreur s'est produite lors de la mise à jour de l'article!", 'danger');
                 }
             }
@@ -73,7 +85,10 @@ class App {
     }
 
     async deleteRow(id) {
-        console.log('Deleting row with ID:', id); // Log for debugging
+        if (this.deletionInProgress) return; // Évite les appels redondants
+        this.deletionInProgress = true;
+
+        console.log('Deleting row with ID:', id);
         const data = await this.api.deleteData(id);
         if (data.hasOwnProperty('id')) {
             this.subject.notify({ type: 'delete', id });
@@ -81,17 +96,21 @@ class App {
         }else {
             Toaster.createToaster("Une erreur s'est produite lors de la suppression de l'article!", 'danger');
         }
+
+        this.deletionInProgress = false;
     }
 
     update(notification) {
-        console.log('Notification received:', notification); // Log for debugging
+        console.log('Notification received:', notification);
         if (notification.type === 'update' || notification.type === 'add') {
+            console.log('Updating table with data:', notification.data);
             this.table.update(notification.data);
         } else if (notification.type === 'delete') {
-            this.deleteRow(notification.id).then(r => console.log('Row deleted')); // Log for debugging
-            //this.table.deleteRow(notification.id);
+            console.log('Deleting row with ID:', notification.id);
+            this.deleteRow(notification.id);
         } else if (notification.type === 'edit') {
-            this.showEditForm(notification.id).then(r => console.log('Edit form displayed')); // Log for debugging
+            console.log('Editing row with ID:', notification.id);
+            this.showEditForm(notification.id);
         }
     }
 

@@ -4,11 +4,15 @@ export class Subject {
     }
 
     subscribe(observer) {
-        this.observers.push(observer);
+        if (!this.observers.includes(observer)) {
+            this.observers.push(observer);
+            console.log('Observer subscribed:', observer);
+        }
     }
 
     unsubscribe(observer) {
         this.observers = this.observers.filter(obs => obs !== observer);
+        console.log('Observer unsubscribed:', observer);
     }
 
     notify(notification) {
