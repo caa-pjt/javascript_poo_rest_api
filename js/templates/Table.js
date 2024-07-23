@@ -21,6 +21,7 @@ export class Table {
 
     async fetchData(data) {
         this.data = Array.isArray(data) ? data : [];
+        this.updateTotalPages();
         this.render();
     }
 
@@ -118,38 +119,41 @@ export class Table {
     }
 
     addEventListeners() {
-        // Sélectionne tous les boutons de tri
+        // Nettoyer les anciens événements pour éviter les doublons
         const sortButtons = document.querySelectorAll('[id^="sort-"]');
-        console.log('Sort buttons list:', sortButtons);
-        // Ajoute un événement de clic pour chaque bouton de tri
         sortButtons.forEach(button => {
-            button.addEventListener('click', () => {
-                const column = button.id.split('-')[1];
-                this.sortData(column);
-            });
+            button.removeEventListener('click', this.handleSortClick);
+            button.addEventListener('click', this.handleSortClick);
         });
 
-        // Ajouter des écouteurs pour les boutons de modification et de suppression
-        let editButtons = document.querySelectorAll('.edit-btn');
-        console.log('Edit buttons list:', editButtons);
+        const editButtons = document.querySelectorAll('.edit-btn');
         editButtons.forEach(button => {
-            button.addEventListener('click', (event) => {
-                let id = event.target.dataset.id;
-                this.subject.notify({ type: 'edit', id });
-            });
+            button.removeEventListener('click', this.handleEditClick);
+            button.addEventListener('click', this.handleEditClick);
         });
 
-        // Ajouter des écouteurs pour les boutons de suppression
-        let deleteButtons = document.querySelectorAll('.delete-btn');
-        console.log('Delete buttons list:', deleteButtons);
+        const deleteButtons = document.querySelectorAll('.delete-btn');
         deleteButtons.forEach(button => {
-            button.addEventListener('click', (event) => {
-                const id = event.target.dataset.id;
-                console.log('Delete button clicked, id:', id);
-                this.subject.notify({ type: 'delete', id });
-            });
+            button.removeEventListener('click', this.handleDeleteClick);
+            button.addEventListener('click', this.handleDeleteClick);
         });
     }
+
+    // Gestion des événements séparée pour éviter les doublons
+    handleSortClick = (event) => {
+        const column = event.target.id.split('-')[1];
+        this.sortData(column);
+    };
+
+    handleEditClick = (event) => {
+        const id = event.target.dataset.id;
+        this.subject.notify({ type: 'edit', id });
+    };
+
+    handleDeleteClick = (event) => {
+        const id = event.target.dataset.id;
+        this.subject.notify({ type: 'delete', id });
+    };
 
     sortData(column) {
         this.sortColumn = column;
@@ -181,6 +185,21 @@ export class Table {
     }
 
     addRow(item) {
+
+        // Vérifiez si une suppression est déjà en cours pour éviter les appels redondants
+        if (this.addingInProgress) return;
+        this.addingInProgress = true;
+
+        console.log('This data before adding row : ', this.data);
+        this.data.push(item);
+        console.log('This data after adding row : ', this.data);
+        // Vérifiez si la ligne est déjà dans le tableau
+        const existingRow = document.querySelector(`tr[data-id="${item.id}"]`);
+        if (existingRow) {
+            console.log(`Row with ID ${item.id} already exists.`);
+            return; // Ne rien faire si la ligne existe déjà
+        }
+
         const tbody = document.getElementById('table-body');
         const tr = document.createElement('tr');
         tr.dataset.id = item.id;
@@ -195,20 +214,15 @@ export class Table {
         tbody.appendChild(tr);
 
         // Ajouter des événements pour les nouveaux boutons ajoutés dynamiquement
-        tr.querySelector('.edit-btn').addEventListener('click', (event) => {
-            event.preventDefault();
-            let id = event.target.dataset.id;
-            this.subject.notify({ type: 'edit', id });
-        });
-
-        tr.querySelector('.delete-btn').addEventListener('click', (event) => {
-            event.preventDefault();
-            const id = event.target.dataset.id;
-            this.subject.notify({ type: 'delete', id });
-        });
+        tr.querySelector('.edit-btn').addEventListener('click', this.handleEditClick);
+        tr.querySelector('.delete-btn').addEventListener('click', this.handleDeleteClick);
 
         // Ajouter les écouteurs d'événements
         this.addEventListeners();
+
+
+        // Réinitialiser le verrou
+        this.addingInProgress = false;
     }
 
     updateRow(item) {
@@ -219,14 +233,22 @@ export class Table {
     }
 
     deleteRow(id) {
+        // Vérifiez si une suppression est déjà en cours pour éviter les appels redondants
+        if (this.deletionInProgress) return;
+        this.deletionInProgress = true;
+
         // Supprimer la ligne du tableau
         const tr = document.querySelector(`tr[data-id="${id}"]`);
         if (tr) {
             tr.remove();
         }
 
+        console.log('This data before filter :', this.data);
+
         // Supprimer l'élément du tableau des données
         this.data = this.data.filter(item => item.id !== id);
+
+        console.log('This data after filter :', this.data);
 
         // Mettre à jour le nombre total de pages
         this.updateTotalPages();
@@ -239,5 +261,8 @@ export class Table {
         // Recalculer la pagination et rendre la table
         this.renderTable();
         this.renderPagination();
+
+        // Réinitialiser le verrou
+        this.deletionInProgress = false;
     }
 }

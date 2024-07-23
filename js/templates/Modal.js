@@ -63,9 +63,6 @@ export class Modal {
         modal.style.display = 'none'; // Cache la modal
 
         setTimeout(() => {
-            console.log(this)
-            //const editModal = document.getElementById('editModal');
-            //editModal.innerHTML = ''; // Supprime le contenu de la modal
             this.innerHTML = ''; // Supprime le contenu de la modal
         }, 300);
     }

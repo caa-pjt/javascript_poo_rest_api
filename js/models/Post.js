@@ -1,22 +1,26 @@
 export class Post  {
     constructor(data) {
-        this._title = data.title;
-        this._userId = data.userId;
         this._id = data.id;
-        this._body = data.body;
+        this._title = data.title;
     }
 
     get title() {
         return this._title;
     }
 
-    get userId() {
-        return this._userId;
-    }
 
     get id() {
         return this._id;
     }
+
+    createExcerpt = (content, maxNumberOfWords, trailingIndicator = '...') => {
+        const listOfWords = content.trim().split(' ');
+        const truncatedContent = listOfWords.slice(0, maxNumberOfWords).join(' ');
+        const excerpt = truncatedContent + trailingIndicator;
+        const output = listOfWords.length > maxNumberOfWords ? excerpt : content;
+
+        return output;
+    };
 
     get body() {
         const words = this._body.split(' ');
