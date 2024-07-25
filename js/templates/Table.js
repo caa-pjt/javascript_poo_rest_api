@@ -1,6 +1,11 @@
+import { ObserverSingleton } from '../observers/ObserverSingleton.js';
+
 export class Table {
-  constructor(subject, options = {}, showEditForm) {
-    this.subject = subject;
+  constructor(options = {}, showEditForm) {
+
+    this.subject = ObserverSingleton.getInstance();
+    console.log("Table observer instance:", this.subject);
+
     this.data = [];
     this.currentPage = 1;
     this.rowsPerPage = options.rowsPerPage || 10;
@@ -27,20 +32,22 @@ export class Table {
     }
 
   update(notification) {
-    // console.log("Update called with notification:", notification);
-    if (notification.type === "update") {
-      console.log("Updating row with data:", notification.data);
-      this.updateRow(notification.data);
-    } else if (notification.type === "add") {
-      console.log("Adding row with data:", notification.data);
-      this.addRow(notification.data);
-    } else if (notification.type === "delete") {
-      console.log("Deleting row with ID:", notification.id);
-      this.deleteRow(notification.id);
-    } else if (notification.type === "edit") {
-      console.log("Editing row with ID:", notification.id);
-      this.showEditForm(notification.id);
-    }
+      switch (notification.type) {
+            case "update":
+                this.updateRow(notification.data);
+                break;
+            case "add":
+                this.addRow(notification.data);
+                break;
+            case "delete":
+                this.deleteRow(notification.id);
+                break;
+            case "edit":
+                this.showEditForm(notification.id);
+                break;
+            default:
+                console.log("Table called with unknown notification:", notification);
+      }
   }
 
   render() {

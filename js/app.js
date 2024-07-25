@@ -1,6 +1,7 @@
 import { MyApi } from "./api/Api.js";
 import { Table } from "./templates/Table.js";
 import { Subject } from "./observers/Subject.js";
+import { ObserverSingleton } from "./observers/ObserverSingleton.js";
 import { Toaster } from "./templates/Toaster.js";
 
 import { ModalFormBuilder } from "./templates/ModalFormBuilder.js";
@@ -9,10 +10,12 @@ class App {
   constructor() {
     this.api = new MyApi("http://localhost:3000/posts"); // /data/db.json
     this.addItem = document.getElementById("add-new");
-    this.subject = new Subject();
+    // this.subject = new Subject();
 
-    // App is observing itself
+    // App is observing the Subject
+    this.subject = ObserverSingleton.getInstance();
     this.subject.subscribe(this);
+    console.log("App Observer instance:", this.subject);
 
     // Lier les méthodes pour conserver le contexte `this`
     this.showEditForm = this.showEditForm.bind(this);
@@ -64,28 +67,27 @@ class App {
               value: "",
               class: "form-control mb-3",
           },
+          {
+              field_type: "input",
+              type: "hidden",
+              name: "id",
+              value: "",
+          }
       ]);
 
   }
 
   createTable() {
 
-    this.table = new Table(this.subject, this.tableOptions);
+    this.table = new Table(this.tableOptions); // this.subject,
     this.table.fetchData(this.data);
   }
 
   // Méthode pour afficher le formulaire d'édition
-  async showEditForm(id = null) {
+  showEditForm(id = null) {
     const item = id ? this.data.find((d) => d.id === id) : {};
-    // this.modal.renderEditForm(item);
-
-    console.log("appel de la méthode showEditForm :", id);
-
-
-      //this.modal.hide();
-    };
-
-    // this.modal.show();
+      this.formBuilder.renderWithData(item);
+  };
 
 
   async deleteRow(id) {
@@ -103,14 +105,64 @@ class App {
     }
   }
 
+  async updateRow(data) {
+    console.log("Updating data with:", data);
+    // Sépare l'ID des autres données
+    //const { id, ...otherData } = formData;
+      this.post = {};
+    if (data.id === "") {
+        delete data.id;
+        this.post = await this.api.setData(data);
+        this.data.push(this.post);
+        this.type = "add";
+    }else {
+        this.post = await this.api.updateData(data.id, data);
+        // Mettre à jour les données dans `this.data`
+        const index = this.data.findIndex(item => item.id === this.post.id);
+        if (index !== -1) {
+            this.data[index] = this.post;
+        }
+        this.type = "update";
+    }
+
+        this.formBuilder.hideModal();
+
+        this.notify(this.type, this.post);
+
+        this.post = {};
+
+  }
+
+    notify(type, data) {
+        if (data.hasOwnProperty("id")) {
+            this.subject.notify({ type: type, data: data });
+            Toaster.createToaster("Article mis à jour avec succès!");
+
+        } else {
+            Toaster.createToaster(
+                "Une erreur s'est produite lors de la mise à jour de l'article!",
+                "danger"
+            );
+        }
+    }
+
   update(notification) {
-    console.log("Notification received:", notification.type);
-    if (notification.type === "editButtonClicked") {
-        console.log("Updating row with data:", notification);
-        this.showEditForm(notification.id);
-    } else if (notification.type === "deleteButtonClicked") {
-        console.log("Deleting row with ID:", notification.id);
-        this.deleteRow(notification.id);
+
+    switch (notification.type) {
+      case "editButtonClicked":
+          console.log("Editing row with ID:", notification);
+          this.showEditForm(notification.id);
+        break;
+      case "deleteButtonClicked":
+          console.log("Deleting row with ID:", notification.id);
+          this.deleteRow(notification.id);
+        break;
+      case "addDataOnSubmitForm":
+        console.log("Form submitted with data:", notification.data);
+        this.updateRow(notification.data);
+        break;
+      default:
+        console.log("No action defined for notification type:", notification.type);
     }
   }
 }

@@ -1,10 +1,16 @@
 import { FormBuilder } from "./FormBuilder.js";
+import { ObserverSingleton } from '../observers/ObserverSingleton.js';
 
 export class ModalFormBuilder extends FormBuilder {
     constructor(options) {
         super(options);
+
+        this.subject = ObserverSingleton.getInstance();
+        console.log("Modal observer instance:", this.subject);
+
         this.modalOptions = options.options || {};
         this.modalTitle = this.modalOptions.modalTitle || "Default Title";
+        this.hiddenIdInput = this.form.querySelector('input[name="id"]');
 
         this.modalContainer = document.getElementById("add_item");
         this.buildModal();
@@ -37,8 +43,6 @@ export class ModalFormBuilder extends FormBuilder {
     `
         );
 
-        console.log("Form ID:", this.form.id);
-
         this.modal = document.getElementById("editModal");
 
         // Insère le formulaire dans le corps de la modal
@@ -60,13 +64,15 @@ export class ModalFormBuilder extends FormBuilder {
             btn.addEventListener("click", () => this.hideModal());
         });
 
-        this.form.onsubmit = (e) => {
-            e.preventDefault();
-            console.log("Form submitted");
-            let data = new FormData(e.target);
-            debugger;
-            //this.hideModal();
-        };
+        this.form.addEventListener('submit', (e) => this.#handleSubmit(e));
+    }
+
+    #handleSubmit(e) {
+        e.preventDefault();
+        console.log("Form submitted");
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+        this.subject.notify({ type: "addDataOnSubmitForm", data });
     }
 
     #newItemButton() {
@@ -84,6 +90,12 @@ export class ModalFormBuilder extends FormBuilder {
      */
     showModal() {
         this.modal.style.display = "flex";
+
+        // Focus sur le premier champ du formulaire
+        const firstInput = this.form.querySelector('input');
+        if (firstInput) {
+            firstInput.focus();
+        }
     }
 
     /**
@@ -91,6 +103,12 @@ export class ModalFormBuilder extends FormBuilder {
      */
     hideModal() {
         this.modal.style.display = "none";
+
+        const hiddenIdInput = this.form.querySelector('input[name="id"]');
+        if (hiddenIdInput) {
+            hiddenIdInput.value = "";
+        }
+        this.form.reset();
     }
 
     /**
@@ -100,6 +118,42 @@ export class ModalFormBuilder extends FormBuilder {
     #appendForm(cible) {
         if (cible instanceof HTMLElement) {
             return cible.appendChild(this.form);
+        }
+    }
+
+    /**
+     * Remplit le formulaire avec les données passées
+     * @param {Object} data - Données à afficher dans le formulaire
+     */
+    renderWithData(data = {}) {
+
+        const hiddenIdInput = this.form.querySelector('input[name="id"]');
+
+        if (data.id) {
+            this.#renderData(data);
+            hiddenIdInput.value = data.id || "";
+        }
+
+        console.log("hiddenIdInput:", hiddenIdInput);
+        this.showModal();
+    }
+
+    #renderData(data) {
+        for (const [key, value] of Object.entries(data)) {
+            const input = this.form.querySelector(`[name=${key}]`);
+            if (input) {
+                input.value = value;
+            }
+        }
+    }
+
+    update(notification) {
+        switch (notification.type) {
+            case "test":
+                console.log("ModalFormBuilder received notification:", notification);
+                break;
+            default:
+                console.log("Table called with unknown notification:", notification);
         }
     }
 }
