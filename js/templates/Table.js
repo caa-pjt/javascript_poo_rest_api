@@ -1,13 +1,14 @@
 export class Table {
-    constructor(subject, options = {}, showEditForm) {
-        this.subject = subject;
-        this.data = Array.isArray(options.data) ? options.data : [];
-        this.currentPage = 1;
-        this.rowsPerPage = options.rowsPerPage || 10;
-        this.sortColumn = options.sortColumn || 'id';
-        this.sortOrder = options.sortOrder || 'asc';
-        this.showEditForm = showEditForm;
-        this.totalPages = 0;
+  constructor(subject, options = {}, showEditForm) {
+    this.subject = subject;
+    this.data = [];
+    this.currentPage = 1;
+    this.rowsPerPage = options.rowsPerPage || 10;
+    this.sortColumn = options.sortColumn || "id";
+    this.sortOrder = options.sortOrder || "asc";
+    this.showEditForm = showEditForm;
+    this.totalPages = 0;
+    this.tableContainer = options.tableContainer || document.body;
 
         this.updateTotalPages();
 
@@ -25,26 +26,25 @@ export class Table {
         this.render();
     }
 
-    update(notification) {
-        console.log('Update called with notification:', notification);
-        if (notification.type === 'update') {
-            console.log('Updating row with data:', notification.data);
-            this.updateRow(notification.data);
-        } else if (notification.type === 'add') {
-            console.log('Adding row with data:', notification.data);
-            this.addRow(notification.data);
-        } else if (notification.type === 'delete') {
-            console.log('Deleting row with ID:', notification.id);
-            this.deleteRow(notification.id);
-        } else if (notification.type === 'edit') {
-            console.log('Editing row with ID:', notification.id);
-            this.showEditForm(notification.id);
-        }
+  update(notification) {
+    // console.log("Update called with notification:", notification);
+    if (notification.type === "update") {
+      console.log("Updating row with data:", notification.data);
+      this.updateRow(notification.data);
+    } else if (notification.type === "add") {
+      console.log("Adding row with data:", notification.data);
+      this.addRow(notification.data);
+    } else if (notification.type === "delete") {
+      console.log("Deleting row with ID:", notification.id);
+      this.deleteRow(notification.id);
+    } else if (notification.type === "edit") {
+      console.log("Editing row with ID:", notification.id);
+      this.showEditForm(notification.id);
     }
+  }
 
-    render() {
-        const container = document.getElementById('table-container');
-        container.innerHTML = `
+  render() {
+    this.tableContainer.innerHTML = `
         <table class="table table-striped">
             <thead>
                 <tr>
@@ -146,13 +146,13 @@ export class Table {
     };
 
     handleEditClick = (event) => {
-        const id = event.target.dataset.id;
-        this.subject.notify({ type: 'edit', id });
+      const id = event.target.dataset.id;
+      this.subject.notify({ type: "editButtonClicked", id });
     };
 
     handleDeleteClick = (event) => {
-        const id = event.target.dataset.id;
-        this.subject.notify({ type: 'delete', id });
+      const id = event.target.dataset.id;
+      this.subject.notify({ type: "deleteButtonClicked", id });
     };
 
     sortData(column) {
@@ -186,19 +186,14 @@ export class Table {
 
     addRow(item) {
 
-        // Vérifiez si une suppression est déjà en cours pour éviter les appels redondants
-        if (this.addingInProgress) return;
-        this.addingInProgress = true;
-
-        console.log('This data before adding row : ', this.data);
-        this.data.push(item);
-        console.log('This data after adding row : ', this.data);
-        // Vérifiez si la ligne est déjà dans le tableau
-        const existingRow = document.querySelector(`tr[data-id="${item.id}"]`);
-        if (existingRow) {
-            console.log(`Row with ID ${item.id} already exists.`);
-            return; // Ne rien faire si la ligne existe déjà
-        }
+    this.data.push(item);
+    //console.log("This data after adding row : ", this.data);
+    // Vérifiez si la ligne est déjà dans le tableau
+    const existingRow = document.querySelector(`tr[data-id="${item.id}"]`);
+    if (existingRow) {
+      console.log(`Row with ID ${item.id} already exists.`);
+      return; // Ne rien faire si la ligne existe déjà
+    }
 
         const tbody = document.getElementById('table-body');
         const tr = document.createElement('tr');
@@ -220,9 +215,6 @@ export class Table {
         // Ajouter les écouteurs d'événements
         this.addEventListeners();
 
-
-        // Réinitialiser le verrou
-        this.addingInProgress = false;
     }
 
     updateRow(item) {
@@ -233,22 +225,18 @@ export class Table {
     }
 
     deleteRow(id) {
-        // Vérifiez si une suppression est déjà en cours pour éviter les appels redondants
-        if (this.deletionInProgress) return;
-        this.deletionInProgress = true;
+      // Supprimer la ligne du tableau
+      const tr = document.querySelector(`tr[data-id="${id}"]`);
+      if (tr) {
+        tr.remove();
+      }
 
-        // Supprimer la ligne du tableau
-        const tr = document.querySelector(`tr[data-id="${id}"]`);
-        if (tr) {
-            tr.remove();
-        }
-
-        console.log('This data before filter :', this.data);
+    // console.log("This data before filter :", this.data);
 
         // Supprimer l'élément du tableau des données
         this.data = this.data.filter(item => item.id !== id);
 
-        console.log('This data after filter :', this.data);
+    // console.log("This data after filter :", this.data);
 
         // Mettre à jour le nombre total de pages
         this.updateTotalPages();
@@ -262,7 +250,5 @@ export class Table {
         this.renderTable();
         this.renderPagination();
 
-        // Réinitialiser le verrou
-        this.deletionInProgress = false;
     }
 }
