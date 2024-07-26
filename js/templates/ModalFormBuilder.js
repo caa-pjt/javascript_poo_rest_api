@@ -1,6 +1,14 @@
 import { FormBuilder } from "./FormBuilder.js";
 import { ObserverSingleton } from '../observers/ObserverSingleton.js';
 
+/**
+ * @class ModalFormBuilder
+ * @extends FormBuilder
+ * @property {HTMLElement} modalContainer - Conteneur de la modal
+ * @property {HTMLElement} modal - Élément HTML de la modal
+ * @property {Object} modalOptions - Options de la modal
+ * @property {
+ */
 export class ModalFormBuilder extends FormBuilder {
     constructor(options) {
         super(options);
@@ -16,6 +24,11 @@ export class ModalFormBuilder extends FormBuilder {
         this.buildModal();
     }
 
+    /**
+     * Construit la modal
+     * @returns {void}
+     *
+     */
     buildModal() {
         // Crée les éléments de la modal en utilisant `insertAdjacentHTML`
         this.modalContainer.insertAdjacentHTML(
@@ -67,14 +80,34 @@ export class ModalFormBuilder extends FormBuilder {
         this.form.addEventListener('submit', (e) => this.#handleSubmit(e));
     }
 
+    /**
+     * Gère la soumission du formulaire
+     * @param e
+     * @returns {void}
+     */
     #handleSubmit(e) {
         e.preventDefault();
-        console.log("Form submitted");
+
+        // Vérification dynamique des cases à cocher
+        const checkboxes = this.form.querySelectorAll('input[type="checkbox"]');
+        const checkboxStates = {};
+        checkboxes.forEach((checkbox) => {
+            checkboxStates[checkbox.name] = checkbox.checked;
+        });
+
         const formData = new FormData(e.target);
         const data = Object.fromEntries(formData.entries());
+
+        // Ajouter les états des cases à cocher au data
+        Object.assign(data, checkboxStates);
+
         this.subject.notify({ type: "addDataOnSubmitForm", data });
     }
 
+    /**
+     * Crée un bouton pour ajouter un nouvel article
+     * @returns {void}
+     */
     #newItemButton() {
         // <div class="btn btn-primary" id="add-new">Ajouter un article</div>
         const button = document.createElement("button");
@@ -86,7 +119,8 @@ export class ModalFormBuilder extends FormBuilder {
     }
 
     /**
-     * Affiche la modal
+     * Affiche la modal et met le focus sur le premier champ du formulaire
+     * @returns {void}
      */
     showModal() {
         this.modal.style.display = "flex";
@@ -99,7 +133,8 @@ export class ModalFormBuilder extends FormBuilder {
     }
 
     /**
-     * Ferme la modal
+     * Ferme la modal et réinitialise le formulaire
+     * @returns {void}
      */
     hideModal() {
         this.modal.style.display = "none";
@@ -122,22 +157,37 @@ export class ModalFormBuilder extends FormBuilder {
     }
 
     /**
-     * Remplit le formulaire avec les données passées
+     * Remplit le formulaire avec les données passées en paramètre et affiche la modal de modification de l'article
+     * sélectionné dans le tableau de données de l'application principale
      * @param {Object} data - Données à afficher dans le formulaire
      */
     renderWithData(data = {}) {
+        // Mettre à jour les champs du formulaire avec les données fournies
+        Object.keys(data).forEach(key => {
+            const input = this.form.querySelector(`[name="${key}"]`);
+            if (input) {
+                if (input.type === 'checkbox') {
+                    input.checked = data[key]; // Pour les cases à cocher
+                } else {
+                    input.value = data[key]; // Pour les autres champs
+                }
+            }
+        });
 
+        // Mettre à jour l'input caché pour l'ID
         const hiddenIdInput = this.form.querySelector('input[name="id"]');
-
-        if (data.id) {
-            this.#renderData(data);
+        if (hiddenIdInput) {
             hiddenIdInput.value = data.id || "";
         }
 
-        console.log("hiddenIdInput:", hiddenIdInput);
         this.showModal();
     }
 
+    /**
+     * Rend les données dans le formulaire de la modal
+     * @param {Object} data - Données à afficher dans le formulaire
+     * @returns {void}
+     */
     #renderData(data) {
         for (const [key, value] of Object.entries(data)) {
             const input = this.form.querySelector(`[name=${key}]`);
@@ -147,6 +197,11 @@ export class ModalFormBuilder extends FormBuilder {
         }
     }
 
+    /**
+     * Met à jour les données du formulaire
+     * @param {Object} data - Données à mettre à jour
+     * @returns {void}
+     */
     update(notification) {
         switch (notification.type) {
             case "test":

@@ -72,8 +72,8 @@ export class FormBuilder {
         }
         if (field.label) {
             const label = this.render("label", { for: field.id, text: field.label });
-            if (this.options.surround != false) {
-                this.surround(label);
+            if (this.options.surround != false || (field.options && field.options.surround)) {
+                this.surround(label, field.options ? field.options.surround : null);
             } else {
                 this.form.appendChild(label);
             }
@@ -81,8 +81,8 @@ export class FormBuilder {
 
         let formHtml = this.render(field.field_type, field);
 
-        if (this.options.surround != false) {
-            this.surround(formHtml);
+        if (this.options.surround != false || (field.options && field.options.surround)) {
+            this.surround(formHtml, field.options ? field.options.surround : null);
         } else {
             return this.form.appendChild(formHtml);
         }
@@ -93,22 +93,21 @@ export class FormBuilder {
      * @param {HTMLElement} input
      * @returns
      */
-    surround(input) {
+    surround(input, specificSurroundOptions = null) {
         const id = input.getAttribute("id");
         const div = this.form.querySelector(`[data-for=${id}]`);
+        const surroundOptions = specificSurroundOptions ? specificSurroundOptions : this.options.surround;
+
         if (div != null) {
             div.appendChild(input);
             return this.form.appendChild(div);
         } else {
-            if (
-                input.getAttribute("for") != "undefined" &&
-                input.getAttribute("for") != null
-            ) {
-                this.options.surround["data-for"] = input.getAttribute("for");
+            if (input.getAttribute("for") != "undefined" && input.getAttribute("for") != null) {
+                surroundOptions["data-for"] = input.getAttribute("for");
             } else {
-                this.options.surround["data-for"] = input.getAttribute("id");
+                surroundOptions["data-for"] = input.getAttribute("id");
             }
-            const div = this.render("div", this.options.surround);
+            const div = this.render("div", surroundOptions);
             div.appendChild(input);
 
             return this.form.appendChild(div);
@@ -134,6 +133,7 @@ export class FormBuilder {
                 el.innerText = value;
             }
             if (key === "value" && tag === "textarea") {
+                console.log( "pecific handling for textarea value if needed", "value", value, tag, el, key, value, attr, "textarea");
                 debugger;
             }
             if (key === "required" && value === false) {
@@ -162,6 +162,16 @@ export class FormBuilder {
             el.innerHTML += `<option value="${k}">${v}</option>`;
         }
         return el;
+    }
+
+    /**
+     * Vérifie si la case à cocher est cochée
+     * @param {String} checkboxId - L'id de la case à cocher
+     * @returns {Boolean} - Retourne true si la case est cochée, sinon false
+     */
+    isChecked(checkboxId) {
+        const checkbox = this.form.querySelector(`#${checkboxId}`);
+        return checkbox ? checkbox.checked : false;
     }
 
     /**

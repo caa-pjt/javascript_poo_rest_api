@@ -6,7 +6,8 @@
   "scripts": {
     "json:server": "json-server --watch data/db.json --port 3000",
     "serve": "live-server --port=6800",
-    "http:server": "http-server -p 8080 --cors"
+    "http:server": "http-server -p 8080 --cors",
+    "start": "concurrently \"npm run json:server\" \"npm run http:server\""
   },
   "author": "Carlos Antunes",
   "license": "MIT",
@@ -14,5 +15,8 @@
     "bootstrap": "^5.3.3",
     "http-server": "^14.1.1",
     "json-server": "^1.0.0-beta.1"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
   }
 }

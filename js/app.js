@@ -15,7 +15,7 @@ class App {
     // App is observing the Subject
     this.subject = ObserverSingleton.getInstance();
     this.subject.subscribe(this);
-    console.log("App Observer instance:", this.subject);
+    // console.log("App Observer instance:", this.subject);
 
     // Lier les méthodes pour conserver le contexte `this`
     this.showEditForm = this.showEditForm.bind(this);
@@ -68,6 +68,20 @@ class App {
               class: "form-control mb-3",
           },
           {
+            field_type: "input",
+            required: false,
+            label: "Publié",
+            type: "checkbox",
+            name: "published",
+            value: "",
+            class: "form-check-input",
+              options: {
+                  surround: {
+                      class: "form-check",
+                  }
+              }
+          },
+          {
               field_type: "input",
               type: "hidden",
               name: "id",
@@ -107,8 +121,7 @@ class App {
 
   async updateRow(data) {
     console.log("Updating data with:", data);
-    // Sépare l'ID des autres données
-    //const { id, ...otherData } = formData;
+
       this.post = {};
     if (data.id === "") {
         delete data.id;

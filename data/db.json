@@ -5,8 +5,9 @@
       "title": "Bonjour"
     },
     {
-      "id": "c7d2",
-      "title": "Super"
+      "title": "Super",
+      "published": true,
+      "id": "c7d2"
     },
     {
       "id": "7979",
@@ -15,18 +16,6 @@
     {
       "id": "c956",
       "title": "test"
-    }
-  ],
-  "comments": [
-    {
-      "id": "1",
-      "text": "a comment about post 1",
-      "postId": null
-    },
-    {
-      "id": "2",
-      "text": "another comment about post 1",
-      "postId": null
     }
   ],
   "profile": {

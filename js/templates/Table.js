@@ -37,6 +37,7 @@ export class Table {
                 this.updateRow(notification.data);
                 break;
             case "add":
+                console.log("Table received add notification:", notification);
                 this.addRow(notification.data);
                 break;
             case "delete":
@@ -50,8 +51,8 @@ export class Table {
       }
   }
 
-  render() {
-    this.tableContainer.innerHTML = `
+    render() {
+        this.tableContainer.innerHTML = `
         <table class="table table-striped">
             <thead>
                 <tr>
@@ -61,7 +62,8 @@ export class Table {
                     <th scope="col">
                         <button class="btn btn-link" id="sort-title">Title <span id="indicator-title"></span></button>
                     </th>
-                    <th scope="col">Actions</th>
+                    <th scope="col">En ligne ?</th>
+                    <th scope="col" class="text-end">Actions</th>
                 </tr>
             </thead>
             <tbody id="table-body">
@@ -71,7 +73,6 @@ export class Table {
             <ul class="pagination justify-content-center" id="pagination"></ul>
         </nav>
     `;
-
         this.renderTable();
         this.renderPagination();
         this.addEventListeners();
@@ -93,6 +94,9 @@ export class Table {
                 <td>${item.id}</td>
                 <td>${item.title}</td>
                 <td>
+                    <input type="checkbox" class="form-check-input" disabled data-id="${item.id}" ${item.published ? 'checked' : ''}>
+                </td>
+                <td class="text-end">
                     <button class="btn btn-primary btn-sm edit-btn" data-id="${item.id}">Edit</button>
                     <button class="btn btn-danger btn-sm delete-btn" data-id="${item.id}">Delete</button>
                 </td>
@@ -192,42 +196,49 @@ export class Table {
     }
 
     addRow(item) {
-
-    this.data.push(item);
-    //console.log("This data after adding row : ", this.data);
-    // Vérifiez si la ligne est déjà dans le tableau
-    const existingRow = document.querySelector(`tr[data-id="${item.id}"]`);
-    if (existingRow) {
-      console.log(`Row with ID ${item.id} already exists.`);
-      return; // Ne rien faire si la ligne existe déjà
-    }
+        this.data.push(item);
+        // Vérifiez si la ligne est déjà dans le tableau
+        const existingRow = document.querySelector(`tr[data-id="${item.id}"]`);
+        if (existingRow) {
+            console.log(`Row with ID ${item.id} already exists.`);
+            return; // Ne rien faire si la ligne existe déjà
+        }
 
         const tbody = document.getElementById('table-body');
         const tr = document.createElement('tr');
         tr.dataset.id = item.id;
+
+        // Ajouter une cellule avec une case à cocher
+        const isChecked = item.published ? 'checked' : '';
         tr.innerHTML = `
-            <td>${item.id}</td>
-            <td>${item.title}</td>
-            <td>
-                <button class="btn btn-primary btn-sm edit-btn" data-id="${item.id}">Edit</button>
-                <button class="btn btn-danger btn-sm delete-btn" data-id="${item.id}">Delete</button>
-            </td>
-        `;
+        <td>${item.id}</td>
+        <td>${item.title}</td>
+        <td>
+            <input type="checkbox" class="form-check-input" disabled="" ${isChecked}/>
+        </td>
+        <td class="text-end">
+            <button class="btn btn-primary btn-sm edit-btn" data-id="${item.id}">Edit</button>
+            <button class="btn btn-danger btn-sm delete-btn" data-id="${item.id}">Delete</button>
+        </td>
+    `;
         tbody.appendChild(tr);
 
         // Ajouter des événements pour les nouveaux boutons ajoutés dynamiquement
         tr.querySelector('.edit-btn').addEventListener('click', this.handleEditClick);
         tr.querySelector('.delete-btn').addEventListener('click', this.handleDeleteClick);
 
+        // Ajouter des événements pour les cases à cocher ajoutées dynamiquement
+        tr.querySelector('.publish-checkbox').addEventListener('change', this.handleCheckboxChange);
+
         // Ajouter les écouteurs d'événements
         this.addEventListeners();
-
     }
 
     updateRow(item) {
         const tr = document.querySelector(`tr[data-id="${item.id}"]`);
         if (tr) {
             tr.children[1].textContent = item.title;
+            tr.querySelector('[type="checkbox"]').checked = item.published;
         }
     }
 
