@@ -48,11 +48,20 @@ class App {
               method: "POST",
               action: "",
           },
+          // Options de la modal
           options: {
               modalTitle: "Créer ou modifier un article",
               surround: {
                   class: "form-group",
               },
+              // Règles de validation pour le formulaire de la modal
+              validationOption : {
+                  validate : {
+                      title : "required|min:5|max:50|match:/^[A-z]{1}[a-z]+$/",
+                  },
+                  local: 'fr',
+                  observeOnInput: true
+              }
           },
       });
 

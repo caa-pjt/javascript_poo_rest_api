@@ -1,6 +1,7 @@
 /**
  * @fileOverview
  * @author Carlos Antunes
+ * @source https://github.com/caa-pjt/form-builder-js.git
  * @version 1.0.0
  */
 

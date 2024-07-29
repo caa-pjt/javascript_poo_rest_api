@@ -1,5 +1,14 @@
+/**
+ * @fileOverview
+ * @author Carlos Antunes
+ * @extends FormBuilder
+ * @description ModalFormBuilder est une classe qui étend FormBuilder et qui permet de créer un formulaire dans une modal
+ * @version 1.0.0
+ */
+
 import { FormBuilder } from "./FormBuilder.js";
 import { ObserverSingleton } from '../observers/ObserverSingleton.js';
+import { FormValidator } from './FormValidator.js';
 
 /**
  * @class ModalFormBuilder
@@ -22,6 +31,15 @@ export class ModalFormBuilder extends FormBuilder {
 
         this.modalContainer = document.getElementById("add_item");
         this.buildModal();
+
+        // Créer une instance de FormValidator pour valider le formulaire
+        // avec les règles de validation passées en paramètre
+        this.formValidator = new FormValidator({
+            form: this.form,
+            validationRules: this.modalOptions.validationOption.validate || {},
+            local: this.modalOptions.validationOption.local || 'en',
+            observeOnInput: this.modalOptions.validationOption.observeOnInput || false
+        });
     }
 
     /**
@@ -88,19 +106,30 @@ export class ModalFormBuilder extends FormBuilder {
     #handleSubmit(e) {
         e.preventDefault();
 
-        // Vérification dynamique des cases à cocher
+        // Valider le formulaire
+        this.formValidator.validate(this.form);
+        // Vérifier si le formulaire est valide
+        if (!this.formValidator.isValide()) {
+            // Traiter les erreurs
+            console.log('Validation errors:', this.formValidator.getErrors());
+            return;
+        }
+
+        this.formValidator.resetValidationClasses();
+
+        // Récupérer les données du formulaire
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData.entries());
+
+        // Ajouter les états des cases à cocher au data
         const checkboxes = this.form.querySelectorAll('input[type="checkbox"]');
         const checkboxStates = {};
         checkboxes.forEach((checkbox) => {
             checkboxStates[checkbox.name] = checkbox.checked;
         });
-
-        const formData = new FormData(e.target);
-        const data = Object.fromEntries(formData.entries());
-
-        // Ajouter les états des cases à cocher au data
         Object.assign(data, checkboxStates);
 
+        // Notifier avec les données validées
         this.subject.notify({ type: "addDataOnSubmitForm", data });
     }
 
