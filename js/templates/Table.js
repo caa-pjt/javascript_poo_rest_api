@@ -196,7 +196,6 @@ export class Table {
     }
 
     addRow(item) {
-        this.data.push(item);
         // Vérifiez si la ligne est déjà dans le tableau
         const existingRow = document.querySelector(`tr[data-id="${item.id}"]`);
         if (existingRow) {
@@ -204,13 +203,39 @@ export class Table {
             return; // Ne rien faire si la ligne existe déjà
         }
 
-        const tbody = document.getElementById('table-body');
-        const tr = document.createElement('tr');
-        tr.dataset.id = item.id;
+        // Vérifier le nombre de lignes sur la page actuelle
+        const start = (this.currentPage - 1) * this.rowsPerPage;
+        const end = start + this.rowsPerPage;
+        const currentPageData = this.data.slice(start, end);
 
-        // Ajouter une cellule avec une case à cocher
-        const isChecked = item.published ? 'checked' : '';
-        tr.innerHTML = `
+        if (currentPageData.length >= this.rowsPerPage) {
+            // Si la page actuelle est la dernière page
+            if (this.currentPage === this.totalPages) {
+                // Ajouter une nouvelle page
+                this.currentPage++;
+                this.updateTotalPages();
+            } else {
+                // Ne rien faire si la page actuelle n'est pas la dernière page
+                return;
+            }
+        }
+
+        // Ajouter l'élément au tableau de données
+        this.data.push(item);
+        this.updateTotalPages();
+
+        // Si la page actuelle est la dernière page, rendre la nouvelle page avec la nouvelle ligne ajoutée
+        if (this.currentPage === this.totalPages) {
+            this.render();
+        } else {
+            // Ajouter la nouvelle ligne au tableau actuel
+            const tbody = document.getElementById('table-body');
+            const tr = document.createElement('tr');
+            tr.dataset.id = item.id;
+
+            // Ajouter une cellule avec une case à cocher
+            const isChecked = item.published ? 'checked' : '';
+            tr.innerHTML = `
         <td>${item.id}</td>
         <td>${item.title}</td>
         <td>
@@ -220,18 +245,21 @@ export class Table {
             <button class="btn btn-primary btn-sm edit-btn" data-id="${item.id}">Edit</button>
             <button class="btn btn-danger btn-sm delete-btn" data-id="${item.id}">Delete</button>
         </td>
-    `;
-        tbody.appendChild(tr);
+        `;
+            tbody.appendChild(tr);
 
-        // Ajouter des événements pour les nouveaux boutons ajoutés dynamiquement
-        tr.querySelector('.edit-btn').addEventListener('click', this.handleEditClick);
-        tr.querySelector('.delete-btn').addEventListener('click', this.handleDeleteClick);
+            // Ajouter des événements pour les nouveaux boutons ajoutés dynamiquement
+            tr.querySelector('.edit-btn').addEventListener('click', this.handleEditClick);
+            tr.querySelector('.delete-btn').addEventListener('click', this.handleDeleteClick);
 
-        // Ajouter des événements pour les cases à cocher ajoutées dynamiquement
-        tr.querySelector('.publish-checkbox').addEventListener('change', this.handleCheckboxChange);
+            // Ajouter des événements pour les cases à cocher ajoutées dynamiquement
+            tr.querySelector('.publish-checkbox').addEventListener('change', this.handleCheckboxChange);
 
-        // Ajouter les écouteurs d'événements
-        this.addEventListeners();
+            // Ajouter les écouteurs d'événements
+            this.addEventListeners();
+        }
+
+        this.renderPagination();
     }
 
     updateRow(item) {
