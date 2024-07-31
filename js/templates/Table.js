@@ -1,23 +1,21 @@
 import { ObserverSingleton } from '../observers/ObserverSingleton.js';
 
 export class Table {
-  constructor(options = {}, showEditForm) {
+    constructor(options = {}, showEditForm) {
+        this.subject = ObserverSingleton.getInstance();
 
-    this.subject = ObserverSingleton.getInstance();
-    console.log("Table observer instance:", this.subject);
+        this.data = [];
+        this.currentPage = 1;
+        this.rowsPerPage = options.rowsPerPage || 10;
+        this.sortColumn = options.sortColumn || "id";
+        this.sortOrder = options.sortOrder || "asc";
+        this.showEditForm = showEditForm;
+        this.tableContainer = options.tableContainer || document.body;
 
-    this.data = [];
-    this.currentPage = 1;
-    this.rowsPerPage = options.rowsPerPage || 10;
-    this.sortColumn = options.sortColumn || "id";
-    this.sortOrder = options.sortOrder || "asc";
-    this.showEditForm = showEditForm;
-    this.totalPages = 0;
-    this.tableContainer = options.tableContainer || document.body;
+        // Configuration des colonnes
+        this.columns = options.rows || this.getDynamicColumns();
+        this.orderedColumns = options.orderedColumns || Object.keys(this.columns);
 
-        this.updateTotalPages();
-
-        this.render();
         this.subject.subscribe(this);
     }
 
@@ -31,13 +29,12 @@ export class Table {
         this.render();
     }
 
-  update(notification) {
-      switch (notification.type) {
+    update(notification) {
+        switch (notification.type) {
             case "update":
                 this.updateRow(notification.data);
                 break;
             case "add":
-                console.log("Table received add notification:", notification);
                 this.addRow(notification.data);
                 break;
             case "delete":
@@ -47,65 +44,88 @@ export class Table {
                 this.showEditForm(notification.id);
                 break;
             default:
-                console.log("Table called with unknown notification:", notification);
-      }
-  }
+                console.log("Table received unknown notification:", notification);
+        }
+    }
 
     render() {
-        this.tableContainer.innerHTML = `
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th scope="col">
-                        <button class="btn btn-link" id="sort-id">ID <span id="indicator-id"></span></button>
-                    </th>
-                    <th scope="col">
-                        <button class="btn btn-link" id="sort-title">Title <span id="indicator-title"></span></button>
-                    </th>
-                    <th scope="col">En ligne ?</th>
-                    <th scope="col" class="text-end">Actions</th>
-                </tr>
-            </thead>
-            <tbody id="table-body">
-            </tbody>
-        </table>
-        <nav class="d-flex justify-content-end">
-            <ul class="pagination justify-content-center" id="pagination"></ul>
-        </nav>
-    `;
+        this.tableContainer.innerHTML = this.getTableHTML();
         this.renderTable();
         this.renderPagination();
         this.addEventListeners();
         this.updateSortIndicators();
     }
 
+    getDynamicColumns() {
+        if (this.data.length === 0) return {};
+        return Object.keys(this.data.reduce((acc, item) => {
+            return item && Object.keys(item).length > Object.keys(acc).length ? item : acc;
+        }, {})).reduce((acc, key) => {
+            acc[key] = key.charAt(0).toUpperCase() + key.slice(1);
+            return acc;
+        }, {});
+    }
+
+    getTableHTML() {
+        return `
+      <table class="table table-striped">
+        <thead>
+          <tr>
+            ${this.getTableHeadersHTML()}
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+      <nav class="d-flex justify-content-end">
+        <ul class="pagination justify-content-center" id="pagination"></ul>
+      </nav>
+    `;
+    }
+
+    getTableHeadersHTML() {
+        const columnKeys = Object.keys(this.columns);
+        const lastColumn = columnKeys[columnKeys.length - 1];
+
+        return columnKeys.map(column => `
+        <th scope="col" id="${column}" ${column === lastColumn ? 'class="text-end"' : ''}>
+            ${this.isSortableColumn(column) ? `
+                <button class="btn link-dark p-0" id="sort-${column}">
+                    ${this.columns[column]}<span class="p-1" id="indicator-${column}"></span>
+                </button>
+            ` : `${this.columns[column]}`}
+        </th>
+    `).join('');
+    }
+
+    isSortableColumn(column) {
+        return this.orderedColumns.includes(column);
+    }
+
     renderTable() {
         const tbody = document.getElementById('table-body');
-        tbody.innerHTML = '';
+        tbody.innerHTML = this.getPaginatedData().map(item => this.getRowHTML(item)).join('');
+    }
 
-        const start = (this.currentPage - 1) * this.rowsPerPage;
-        const end = start + this.rowsPerPage;
-        const paginatedData = this.data.slice(start, end);
-
-        paginatedData.forEach((item) => {
-            const tr = document.createElement('tr');
-            tr.dataset.id = item.id;
-            tr.innerHTML = `
-                <td>${item.id}</td>
-                <td>${item.title}</td>
-                <td>
-                    <input type="checkbox" class="form-check-input" disabled data-id="${item.id}" ${item.published ? 'checked' : ''}>
-                </td>
-                <td class="text-end">
-                    <button class="btn btn-primary btn-sm edit-btn" data-id="${item.id}">Edit</button>
-                    <button class="btn btn-danger btn-sm delete-btn" data-id="${item.id}">Delete</button>
-                </td>
-            `;
-            tbody.appendChild(tr);
-        });
-
-        // Ajout des écouteurs d'événements après chaque mise à jour de la table
-        this.addEventListeners();
+    getRowHTML(item) {
+        return `
+      <tr data-id="${item.id}">
+        ${Object.keys(this.columns).map(column => `
+            ${column === 'edit' ? '' : `
+            <td>
+                ${typeof item[column] === 'boolean'
+            ? `<input type="checkbox" class="form-check-input" disabled ${item[column] ? 'checked' : ''}>`
+            : item[column] !== undefined && item[column] !== null
+                ? item[column]
+                : ''
+        }
+            </td>`}
+        `).join('')}
+        <td class="text-end">
+          <button class="btn btn-primary btn-sm edit-btn" data-id="${item.id}">Edit</button>
+          <button class="btn btn-danger btn-sm delete-btn" data-id="${item.id}">Delete</button>
+        </td>
+      </tr>
+    `;
     }
 
     updateTotalPages() {
@@ -115,6 +135,7 @@ export class Table {
     renderPagination() {
         const pagination = document.getElementById('pagination');
         pagination.innerHTML = '';
+
         if (this.data.length > this.rowsPerPage) {
             for (let i = 1; i <= this.totalPages; i++) {
                 const li = document.createElement('li');
@@ -130,40 +151,45 @@ export class Table {
     }
 
     addEventListeners() {
-        // Nettoyer les anciens événements pour éviter les doublons
-        const sortButtons = document.querySelectorAll('[id^="sort-"]');
-        sortButtons.forEach(button => {
+        this.addSortEventListeners();
+        this.addEditEventListeners();
+        this.addDeleteEventListeners();
+    }
+
+    addSortEventListeners() {
+        document.querySelectorAll('[id^="sort-"]').forEach(button => {
             button.removeEventListener('click', this.handleSortClick);
             button.addEventListener('click', this.handleSortClick);
         });
+    }
 
-        const editButtons = document.querySelectorAll('.edit-btn');
-        editButtons.forEach(button => {
+    addEditEventListeners() {
+        document.querySelectorAll('.edit-btn').forEach(button => {
             button.removeEventListener('click', this.handleEditClick);
             button.addEventListener('click', this.handleEditClick);
         });
+    }
 
-        const deleteButtons = document.querySelectorAll('.delete-btn');
-        deleteButtons.forEach(button => {
+    addDeleteEventListeners() {
+        document.querySelectorAll('.delete-btn').forEach(button => {
             button.removeEventListener('click', this.handleDeleteClick);
             button.addEventListener('click', this.handleDeleteClick);
         });
     }
 
-    // Gestion des événements séparée pour éviter les doublons
     handleSortClick = (event) => {
         const column = event.target.id.split('-')[1];
         this.sortData(column);
     };
 
     handleEditClick = (event) => {
-      const id = event.target.dataset.id;
-      this.subject.notify({ type: "editButtonClicked", id });
+        const id = event.target.dataset.id;
+        this.subject.notify({ type: "editButtonClicked", id });
     };
 
     handleDeleteClick = (event) => {
-      const id = event.target.dataset.id;
-      this.subject.notify({ type: "deleteButtonClicked", id });
+        const id = event.target.dataset.id;
+        this.subject.notify({ type: "deleteButtonClicked", id });
     };
 
     sortData(column) {
@@ -178,123 +204,59 @@ export class Table {
     }
 
     updateSortIndicators() {
-        const indicators = {
-            id: document.getElementById('indicator-id'),
-            title: document.getElementById('indicator-title')
-        };
+        const indicators = {};
+        this.orderedColumns.forEach(column => {
+            indicators[column] = document.getElementById(`indicator-${column}`);
+            if (indicators[column]) indicators[column].innerText = '';
+        });
 
-        // Réinitialiser les indicateurs
-        for (const key in indicators) {
-            indicators[key].innerText = '';
-        }
-
-        // Mettre à jour l'indicateur pour la colonne de tri actuelle
         const indicator = indicators[this.sortColumn];
-        if (indicator) {
-            indicator.innerText = this.sortOrder === 'asc' ? '▲' : '▼';
-        }
+        if (indicator) indicator.innerText = this.sortOrder === 'asc' ? '▲' : '▼';
     }
 
     addRow(item) {
-        // Vérifiez si la ligne est déjà dans le tableau
-        const existingRow = document.querySelector(`tr[data-id="${item.id}"]`);
-        if (existingRow) {
-            console.log(`Row with ID ${item.id} already exists.`);
-            return; // Ne rien faire si la ligne existe déjà
-        }
 
-        // Vérifier le nombre de lignes sur la page actuelle
-        const start = (this.currentPage - 1) * this.rowsPerPage;
-        const end = start + this.rowsPerPage;
-        const currentPageData = this.data.slice(start, end);
-
-        if (currentPageData.length >= this.rowsPerPage) {
-            // Si la page actuelle est la dernière page
-            if (this.currentPage === this.totalPages) {
-                // Ajouter une nouvelle page
-                this.currentPage++;
-                this.updateTotalPages();
-            } else {
-                // Ne rien faire si la page actuelle n'est pas la dernière page
-                return;
-            }
-        }
-
-        // Ajouter l'élément au tableau de données
         this.data.push(item);
         this.updateTotalPages();
 
-        // Si la page actuelle est la dernière page, rendre la nouvelle page avec la nouvelle ligne ajoutée
-        if (this.currentPage === this.totalPages) {
-            this.render();
-        } else {
-            // Ajouter la nouvelle ligne au tableau actuel
-            const tbody = document.getElementById('table-body');
-            const tr = document.createElement('tr');
-            tr.dataset.id = item.id;
-
-            // Ajouter une cellule avec une case à cocher
-            const isChecked = item.published ? 'checked' : '';
-            tr.innerHTML = `
-        <td>${item.id}</td>
-        <td>${item.title}</td>
-        <td>
-            <input type="checkbox" class="form-check-input" disabled="" ${isChecked}/>
-        </td>
-        <td class="text-end">
-            <button class="btn btn-primary btn-sm edit-btn" data-id="${item.id}">Edit</button>
-            <button class="btn btn-danger btn-sm delete-btn" data-id="${item.id}">Delete</button>
-        </td>
-        `;
-            tbody.appendChild(tr);
-
-            // Ajouter des événements pour les nouveaux boutons ajoutés dynamiquement
-            tr.querySelector('.edit-btn').addEventListener('click', this.handleEditClick);
-            tr.querySelector('.delete-btn').addEventListener('click', this.handleDeleteClick);
-
-            // Ajouter des événements pour les cases à cocher ajoutées dynamiquement
-            tr.querySelector('.publish-checkbox').addEventListener('change', this.handleCheckboxChange);
-
-            // Ajouter les écouteurs d'événements
-            this.addEventListeners();
+        // Naviguer vers la dernière page si l'article ajouté se trouve dans une nouvelle page
+        if ((this.data.length % this.rowsPerPage) === 1) {
+            this.currentPage = this.totalPages;
         }
 
-        this.renderPagination();
+        this.render();
     }
 
     updateRow(item) {
         const tr = document.querySelector(`tr[data-id="${item.id}"]`);
         if (tr) {
-            tr.children[1].textContent = item.title;
-            tr.querySelector('[type="checkbox"]').checked = item.published;
+            Object.keys(this.columns).forEach((column, index) => {
+
+                // Ignorer les colonnes "edit" et "delete"
+                if (column === 'edit' || column === 'delete') return;
+
+                const cell = tr.children[index];
+
+                if (typeof item[column] === 'boolean') {
+                    // Si c'est un boolean, mettre à jour la case à cocher
+                    cell.innerHTML = `<input type="checkbox" class="form-check-input" disabled ${item[column] ? 'checked' : ''}>`;
+                } else {
+                    // Sinon, mettre à jour le contenu textuel
+                    cell.textContent = item[column] !== undefined && item[column] !== null ? item[column] : '';
+                }
+            });
         }
     }
 
     deleteRow(id) {
-      // Supprimer la ligne du tableau
-      const tr = document.querySelector(`tr[data-id="${id}"]`);
-      if (tr) {
-        tr.remove();
-      }
-
-    // console.log("This data before filter :", this.data);
-
-        // Supprimer l'élément du tableau des données
         this.data = this.data.filter(item => item.id !== id);
-
-    // console.log("This data after filter :", this.data);
-
-        // Mettre à jour le nombre total de pages
         this.updateTotalPages();
+        if (this.currentPage > this.totalPages) this.currentPage = this.totalPages;
+        this.render();
+    }
 
-        // Si la page actuelle dépasse le nombre total de pages, revenir à la page précédente
-        if (this.currentPage > this.totalPages) {
-            this.currentPage = this.totalPages;
-        }
-
-        // Recalculer la pagination et rendre la table
-        this.renderTable();
-        this.renderPagination();
-
+    getPaginatedData() {
+        const start = (this.currentPage - 1) * this.rowsPerPage;
+        return this.data.slice(start, start + this.rowsPerPage);
     }
 }

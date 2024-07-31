@@ -1,6 +1,5 @@
 import { MyApi } from "./api/Api.js";
 import { Table } from "./templates/Table.js";
-import { Subject } from "./observers/Subject.js";
 import { ObserverSingleton } from "./observers/ObserverSingleton.js";
 import { Toaster } from "./templates/Toaster.js";
 
@@ -15,7 +14,6 @@ class App {
     // App is observing the Subject
     this.subject = ObserverSingleton.getInstance();
     this.subject.subscribe(this);
-    // console.log("App Observer instance:", this.subject);
 
     // Lier les méthodes pour conserver le contexte `this`
     this.showEditForm = this.showEditForm.bind(this);
@@ -28,10 +26,19 @@ class App {
 
     // Définir les options par défaut pour la table
     this.tableOptions = await {
-      rowsPerPage: 5,
-      sortColumn: "id",
-      sortOrder: "asc",
-      tableContainer: document.getElementById("table-container"),
+        rowsPerPage: 5,
+        sortColumn: "id",
+        sortOrder: "asc",
+        tableContainer: document.getElementById("table-container"),
+        // Les colonnes de la table
+        rows : {
+            id : "ID",
+            title : "Titre",
+            published : "Publié",
+            edit : "Actions",
+        },
+        orderedColumns: ["id", "title", "published"],
+
     };
 
     // Créer une instance de Table avec les options
@@ -57,7 +64,7 @@ class App {
               // Règles de validation pour le formulaire de la modal
               validationOption : {
                   validate : {
-                      title : "required|min:5|max:50|match:/^[A-z]{1}[a-z]+$/",
+                      title : "required|min:5|max:50|match:/^[\\W\\w ]+$/",
                   },
                   local: 'fr',
                   observeOnInput: true
