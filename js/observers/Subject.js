@@ -7,6 +7,7 @@ export class Subject {
         if (!this.observers.includes(observer)) {
             this.observers.push(observer);
             console.log('Observer subscribed:', observer);
+			console.log('Current Observers:', this.observers);
         }
     }
 
@@ -17,6 +18,7 @@ export class Subject {
 
     notify(notification) {
         console.log('Notify:', notification);
+		console.log('Observers count:', this.observers.length);
         this.observers.forEach(observer => observer.update(notification));
     }
 }

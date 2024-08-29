@@ -1,53 +1,79 @@
 import { ObserverSingleton } from '../observers/ObserverSingleton.js';
 
+/**
+ * @class Table
+ * @description Classe représentant un tableau avec pagination, tri et gestion des événements d'édition et de suppression.
+ */
 export class Table {
-    constructor(options = {}, showEditForm) {
+
+    /**
+     * @constructor
+     * @param {Object} options - Options de configuration pour le tableau.
+     * @param {Function} showEditForm - Fonction pour afficher le formulaire d'édition.
+     */
+    constructor(options = {}) {
+        // Instance de l'observateur pour la communication entre les composants
         this.subject = ObserverSingleton.getInstance();
 
-        this.data = [];
+        // Initialisation des propriétés de l'objet
+        this.tableData = [];
         this.currentPage = 1;
         this.rowsPerPage = options.rowsPerPage || 10;
         this.sortColumn = options.sortColumn || "id";
         this.sortOrder = options.sortOrder || "asc";
-        this.showEditForm = showEditForm;
         this.tableContainer = options.tableContainer || document.body;
 
         // Configuration des colonnes
         this.columns = options.rows || this.getDynamicColumns();
         this.orderedColumns = options.orderedColumns || Object.keys(this.columns);
 
+        // S'abonner aux notifications de l'observateur
         this.subject.subscribe(this);
+		
     }
 
+    /**
+     * Désinscrit l'instance des notifications de l'observateur.
+     */
     destroy() {
         this.subject.unsubscribe(this);
     }
 
+    /**
+     * Récupère les données et les stocke dans le tableau.
+     * @param {Array} data - Données à afficher dans le tableau.
+     */
     async fetchData(data) {
-        this.data = Array.isArray(data) ? data : [];
+		this.tableData = Array.isArray(data) ? data : [];
         this.updateTotalPages();
         this.render();
+		console.log('Table fetched data:', this.tableData);
     }
 
+    /**
+     * Met à jour le tableau en fonction des notifications reçues.
+     * @param {Object} notification - Notification reçue de l'observateur.
+     */
     update(notification) {
         switch (notification.type) {
             case "update":
                 this.updateRow(notification.data);
                 break;
             case "add":
+				console.log(this.tableData);
                 this.addRow(notification.data);
                 break;
-            case "delete":
-                this.deleteRow(notification.id);
-                break;
-            case "edit":
-                this.showEditForm(notification.id);
+			case "delete":
+                this.deleteRow(notification.data.id);
                 break;
             default:
                 console.log("Table received unknown notification:", notification);
         }
     }
 
+    /**
+     * Rendu du tableau complet avec pagination et écouteurs d'événements.
+     */
     render() {
         this.tableContainer.innerHTML = this.getTableHTML();
         this.renderTable();
@@ -56,9 +82,13 @@ export class Table {
         this.updateSortIndicators();
     }
 
+    /**
+     * Obtient dynamiquement les colonnes à partir des données.
+     * @returns {Object} - Objet contenant les noms des colonnes.
+     */
     getDynamicColumns() {
-        if (this.data.length === 0) return {};
-        return Object.keys(this.data.reduce((acc, item) => {
+        if (this.tableData.length === 0) return {};
+        return Object.keys(this.tableData.reduce((acc, item) => {
             return item && Object.keys(item).length > Object.keys(acc).length ? item : acc;
         }, {})).reduce((acc, key) => {
             acc[key] = key.charAt(0).toUpperCase() + key.slice(1);
@@ -66,6 +96,10 @@ export class Table {
         }, {});
     }
 
+    /**
+     * Génère le HTML de base pour le tableau.
+     * @returns {string} - Chaîne HTML pour le tableau.
+     */
     getTableHTML() {
         return `
       <table class="table table-striped">
@@ -82,6 +116,10 @@ export class Table {
     `;
     }
 
+    /**
+     * Génère le HTML pour les en-têtes du tableau avec les options de tri.
+     * @returns {string} - Chaîne HTML pour les en-têtes de tableau.
+     */
     getTableHeadersHTML() {
         const columnKeys = Object.keys(this.columns);
         const lastColumn = columnKeys[columnKeys.length - 1];
@@ -97,15 +135,26 @@ export class Table {
     `).join('');
     }
 
+    /**
+     * Vérifie si une colonne est triable.
+     * @param {string} column - Nom de la colonne.
+     * @returns {boolean} - True si la colonne est triable, sinon False.
+     */
     isSortableColumn(column) {
         return this.orderedColumns.includes(column);
     }
 
+    /**
+     * Rendu des lignes du tableau avec pagination.
+     */
     renderTable() {
         const tbody = document.getElementById('table-body');
         tbody.innerHTML = this.getPaginatedData().map(item => this.getRowHTML(item)).join('');
     }
 
+    /**
+     * Met à jour le nombre total de pages en fonction des données.
+     */
     getRowHTML(item) {
         return `
       <tr data-id="${item.id}">
@@ -128,15 +177,21 @@ export class Table {
     `;
     }
 
+    /**
+     * Met à jour le nombre total de pages en fonction des données.
+     */
     updateTotalPages() {
-        this.totalPages = Math.ceil(this.data.length / this.rowsPerPage);
+        this.totalPages = Math.ceil(this.tableData.length / this.rowsPerPage);
     }
 
+    /**
+     * Rendu de la pagination du tableau.
+     */
     renderPagination() {
         const pagination = document.getElementById('pagination');
         pagination.innerHTML = '';
 
-        if (this.data.length > this.rowsPerPage) {
+        if (this.tableData.length > this.rowsPerPage) {
             for (let i = 1; i <= this.totalPages; i++) {
                 const li = document.createElement('li');
                 li.className = 'page-item' + (i === this.currentPage ? ' active' : '');
@@ -150,12 +205,18 @@ export class Table {
         }
     }
 
+    /**
+     * Ajoute les écouteurs d'événements pour le tri, l'édition et la suppression.
+     */
     addEventListeners() {
         this.addSortEventListeners();
         this.addEditEventListeners();
         this.addDeleteEventListeners();
     }
 
+    /**
+     * Ajoute les écouteurs d'événements pour le tri des colonnes.
+     */
     addSortEventListeners() {
         document.querySelectorAll('[id^="sort-"]').forEach(button => {
             button.removeEventListener('click', this.handleSortClick);
@@ -163,6 +224,9 @@ export class Table {
         });
     }
 
+    /**
+     * Ajoute les écouteurs d'événements pour les boutons d'édition.
+     */
     addEditEventListeners() {
         document.querySelectorAll('.edit-btn').forEach(button => {
             button.removeEventListener('click', this.handleEditClick);
@@ -170,6 +234,9 @@ export class Table {
         });
     }
 
+    /**
+     * Ajoute les écouteurs d'événements pour les boutons de suppression.
+     */
     addDeleteEventListeners() {
         document.querySelectorAll('.delete-btn').forEach(button => {
             button.removeEventListener('click', this.handleDeleteClick);
@@ -177,25 +244,41 @@ export class Table {
         });
     }
 
+    /**
+     * Gère l'événement de tri lors du clic sur une colonne triable.
+     * @param {Event} event - Événement de clic.
+     */
     handleSortClick = (event) => {
         const column = event.target.id.split('-')[1];
         this.sortData(column);
     };
 
+    /**
+     * Gère l'événement de clic sur le bouton d'édition.
+     * @param {Event} event - Événement de clic.
+     */
     handleEditClick = (event) => {
         const id = event.target.dataset.id;
         this.subject.notify({ type: "editButtonClicked", id });
     };
 
+    /**
+     * Gère l'événement de clic sur le bouton de suppression.
+     * @param {Event} event - Événement de clic.
+     */
     handleDeleteClick = (event) => {
         const id = event.target.dataset.id;
         this.subject.notify({ type: "deleteButtonClicked", id });
     };
 
+    /**
+     * Trie les données en fonction de la colonne spécifiée.
+     * @param {string} column - Nom de la colonne à trier.
+     */
     sortData(column) {
         this.sortColumn = column;
         this.sortOrder = this.sortOrder === 'asc' ? 'desc' : 'asc';
-        this.data.sort((a, b) => {
+		this.tableData.sort((a, b) => {
             if (a[column] < b[column]) return this.sortOrder === 'asc' ? -1 : 1;
             if (a[column] > b[column]) return this.sortOrder === 'asc' ? 1 : -1;
             return 0;
@@ -203,6 +286,9 @@ export class Table {
         this.render();
     }
 
+    /**
+     * Met à jour les indicateurs de tri des colonnes.
+     */
     updateSortIndicators() {
         const indicators = {};
         this.orderedColumns.forEach(column => {
@@ -214,19 +300,27 @@ export class Table {
         if (indicator) indicator.innerText = this.sortOrder === 'asc' ? '▲' : '▼';
     }
 
+    /**
+     * Ajoute une nouvelle ligne au tableau.
+     * @param {Object} item - Données de la ligne à ajouter.
+     */
     addRow(item) {
-
-        this.data.push(item);
+        // if(this.tableData.some(row => row.id === item.id))  return;
+		//this.tableData.push(item);
         this.updateTotalPages();
 
         // Naviguer vers la dernière page si l'article ajouté se trouve dans une nouvelle page
-        if ((this.data.length % this.rowsPerPage) === 1) {
+        if ((this.tableData.length % this.rowsPerPage) === 1) {
             this.currentPage = this.totalPages;
         }
 
         this.render();
     }
 
+    /**
+     * Met à jour une ligne du tableau.
+     * @param {Object} item - Données de la ligne à mettre à jour.
+     */
     updateRow(item) {
         const tr = document.querySelector(`tr[data-id="${item.id}"]`);
         if (tr) {
@@ -248,15 +342,23 @@ export class Table {
         }
     }
 
+    /**
+     * Supprime une ligne du tableau en fonction de l'ID.
+     * @param {number} id - ID de la ligne à supprimer.
+     */
     deleteRow(id) {
-        this.data = this.data.filter(item => item.id !== id);
+		this.tableData = this.tableData.filter(item => item.id !== id);
         this.updateTotalPages();
         if (this.currentPage > this.totalPages) this.currentPage = this.totalPages;
         this.render();
     }
 
+    /**
+     * Obtient les données paginées en fonction de la page actuelle.
+     * @returns {Array} - Données de la page actuelle.
+     */
     getPaginatedData() {
         const start = (this.currentPage - 1) * this.rowsPerPage;
-        return this.data.slice(start, start + this.rowsPerPage);
+        return this.tableData.slice(start, start + this.rowsPerPage);
     }
 }

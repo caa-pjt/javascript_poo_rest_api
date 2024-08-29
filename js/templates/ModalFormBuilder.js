@@ -40,6 +40,13 @@ export class ModalFormBuilder extends FormBuilder {
             local: this.modalOptions.validationOption.local || 'en',
             observeOnInput: this.modalOptions.validationOption.observeOnInput || false
         });
+
+        // Ajout de l'écouteur d'événement pour la touche Escape
+        document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape') {
+                this.hideModal();
+            }
+        });
     }
 
     /**
@@ -226,18 +233,4 @@ export class ModalFormBuilder extends FormBuilder {
         }
     }
 
-    /**
-     * Met à jour les données du formulaire
-     * @param {Object} data - Données à mettre à jour
-     * @returns {void}
-     */
-    update(notification) {
-        switch (notification.type) {
-            case "test":
-                console.log("ModalFormBuilder received notification:", notification);
-                break;
-            default:
-                console.log("Table called with unknown notification:", notification);
-        }
-    }
 }

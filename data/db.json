@@ -2,23 +2,23 @@
   "posts": [
     {
       "id": "f686",
+      "published": false,
       "title": "Bonjour"
     },
     {
-      "title": "Super",
+      "title": "Super bouleau",
       "published": true,
       "id": "c7d2"
     },
     {
       "id": "7979",
+      "published": false,
       "title": "Super bouleau 2"
     },
     {
-      "id": "c956",
-      "title": "test"
+      "title": "Mon super article",
+      "published": true,
+      "id": "c956"
     }
-  ],
-  "profile": {
-    "name": "typicode"
-  }
+  ]
 }
