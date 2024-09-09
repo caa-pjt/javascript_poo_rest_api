@@ -49,14 +49,14 @@ export class FormBuilder {
      * ]
      * @returns {HTMLElement} - Crée une liste d'éléments déstinés à un formulaire
      */
-    addFields(nodesList = []) {
-        nodesList.forEach((field) => this.dispatche(field));
-
-        // if output exist return form to view
-        typeof this.options.output === "string"
-            ? this.appendIn(this.options.output)
-            : null;
-    }
+	addFields(nodesList = []) {
+		nodesList.forEach((field) => this.dispatche(field));
+		
+		// if output exists, return form to view
+		if (typeof this.options.output === "string") {
+			this.appendIn(this.options.output);
+		}
+	}
 
     setForm() {
         return (this.form = this.render("form", this.formOptions));
@@ -122,40 +122,47 @@ export class FormBuilder {
      * - {required: false, type: 'email', name: 'email', placeholder: 'Enter email', value: 'cca@cc.ch', …}
      * @returns {HTMLElement} Retourne l'élément html
      */
-    render(tag, attr = {}) {
-        const el = document.createElement(tag);
-
-        attr.label ? delete attr.label : null;
-        attr.field_type ? delete attr.field_type : null;
-
-        for (const [key, value] of Object.entries(attr)) {
-            /* console.log(key, value) */
-            if (key === "text") {
-                el.innerText = value;
-            }
-            if (key === "value" && tag === "textarea") {
-                console.log( "pecific handling for textarea value if needed", "value", value, tag, el, key, value, attr, "textarea");
-                debugger;
-            }
-            if (key === "required" && value === false) {
-                continue;
-            }
-            if (key == "options") {
-                if (tag === "select") {
-                    this.select(el, value);
-                } else {
-                    for (const [k, v] of Object.entries(attr.options)) {
-                        el[k] = v;
-                    }
-                }
-            } else {
-                key === "text" ? null : el.setAttribute(key, value);
-            }
-        }
-        return el;
-    }
-
-    select(el, options) {
+	render(tag, attr = {}) {
+		const el = document.createElement(tag);
+		
+		if (attr.label) {
+			delete attr.label;
+		}
+		
+		if (attr.field_type) {
+			delete attr.field_type;
+		}
+		
+		for (const [key, value] of Object.entries(attr)) {
+			/* console.log(key, value) */
+			if (key === "text") {
+				el.innerText = value;
+			}
+			if (key === "value" && tag === "textarea") {
+				console.log("specific handling for textarea value if needed", "value", value, tag, el, key, value, attr, "textarea");
+				debugger;
+			}
+			if (key === "required" && value === false) {
+				continue;
+			}
+			if (key === "options") {
+				if (tag === "select") {
+					this.select(el, value);
+				} else {
+					for (const [k, v] of Object.entries(attr.options)) {
+						el[k] = v;
+					}
+				}
+			} else {
+				if (key !== "text") {
+					el.setAttribute(key, value);
+				}
+			}
+		}
+		return el;
+	}
+	
+	select(el, options) {
         if (options.default) {
             el.innerHTML = `<option value="">${options.default}</option>`;
         }
