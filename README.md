@@ -1,5 +1,7 @@
 # Javascript simple POO rest API
 
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=caa-pjt_javascript_poo_rest_api&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=caa-pjt_javascript_poo_rest_api)
+
 ## Description
 This is a simple rest API that uses POO in javascript. It has a simple CRUD for tasks.
 You can create, read, update and delete tasks. The tasks are stored in a JSON file.

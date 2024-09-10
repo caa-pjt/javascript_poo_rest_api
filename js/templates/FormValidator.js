@@ -59,7 +59,7 @@ export class FormValidator {
      * @param options
      */
     constructor(options = {}) {
-        this.options = Object.assign({}, this.options, options);
+		this.options = Object.assign({}, this.options || {}, options);
         this.errors = {};
         this.debounceDelay = 400; // Default debounce delay in milliseconds
         this.inputListeners = new Map(); // Map to store input listeners
@@ -91,29 +91,31 @@ export class FormValidator {
      * @param {HTMLFormElement} formElement - The form element to extract data from
      * @returns {object[]|error|boolean} - throws an error if no data is retrieved
      */
-    #formData(formElement) {
-        if (!formElement || !(formElement instanceof HTMLFormElement)) {
-            console.error(`The provided element is not a valid HTMLFormElement.`)
-            return false;
-        }
-
-        const formData = Object.fromEntries(new FormData(formElement).entries())
-        this.data = formData;
-
-        if (formElement.elements.length === 0) {
-            console.error(`No FormData inputs detected! Please ensure the form contains inputs.`)
-        } else {
-            for (let i = 0; i < formElement.elements.length; i++) {
-                const input = formElement.elements[i];
-                this.inputs.push(input);
-                const inputName = input.getAttribute('name');
-                if (inputName) {
-                    this.inputElements[inputName] = input; // Add input element to inputElements object
-                }
-            }
-            this.#validateData();
-        }
-    }
+	#formData(formElement) {
+		if (!formElement || !(formElement instanceof HTMLFormElement)) {
+			console.error(`The provided element is not a valid HTMLFormElement.`);
+			return false;
+		}
+		
+		// Crée un objet FormData depuis le formulaire
+		const formData = Object.fromEntries(new FormData(formElement).entries());
+		this.data = formData;
+		
+		if (formElement.elements.length === 0) {
+			console.error(`No FormData inputs detected! Please ensure the form contains inputs.`);
+			return;
+		}
+		Array.from(formElement.elements).forEach((input) => {
+			this.inputs.push(input);
+			
+			const inputName = input.getAttribute('name');
+			if (inputName) {
+				this.inputElements[inputName] = input;
+			}
+		});
+		
+		this.#validateData();
+	}
 
     /**
      * Add input listeners to the form inputs
@@ -217,26 +219,42 @@ export class FormValidator {
      * @param {string} input - Input attribute name
      * @param {string} rules - Validation rule and function to call
      */
-    #rulesValidator(input, rules) {
-
-        for (let i = 0; i < rules.length; i++) {
-
-            let rule = rules[i].split(':')
-            if (rule.length > 1) {
-
-                const func = rule[0]
-                const param = rule[1]
-                this[func](input, param)
-            } else {
-                this[rule](input)
-            }
-            if (this.#FormValidatorDebug) {
-                console.log(input)
-            }
-        }
-    }
-
-    /**
+	#rulesValidator(input, rules) {
+		// Vérifie que l'input a bien des règles de validation définies
+		if (!this.options.validationRules.hasOwnProperty(input)) {
+			if (this.#FormValidatorDebug) {
+				console.log(`The "${input}" has no defined validation rules. Ignored.`);
+			}
+			return; // Si pas de règles définies, on ignore cet input
+		}
+		
+		for (let i = 0; i < rules.length; i++) {
+			let rule = rules[i].split(':');
+			
+			if (rule.length > 1) {
+				const func = rule[0];
+				const param = rule[1];
+				if (typeof this[func] === 'function') {
+					this[func](input, param);
+				} else {
+					console.error(`The function "${func}" do not exist`);
+				}
+			} else {
+				if (typeof this[rule] === 'function') {
+					this[rule](input);
+				} else {
+					console.error(`The validation function "${rule}" do not exist.`);
+				}
+			}
+			
+			if (this.#FormValidatorDebug) {
+				console.log(input);
+			}
+		}
+	}
+	
+	
+	/**
      *
      * @param {string} AttrName     - Input attribute name
      * @returns {HTMLHtmlElement}   - Input
@@ -367,20 +385,37 @@ export class FormValidator {
      *
      * @param {HTMLElement} input  - Input HTML
      */
-    #removeHtmlError(input) {
-
-        if(input.classList.contains('was-validated')){
-            return false
-        }
-
-        input.parentElement.style.marginBottom = '0px'
-        input.classList.contains('is-invalid') ? input.classList.remove('is-invalid') : null
-        input.classList.contains('was-validated') ? null : input.classList.add('was-validated')
-        input.nextElementSibling?.tagName === 'SPAN' ? input.nextElementSibling.remove() : null
-
-    }
-
-    /* ========================================
+	#removeHtmlError(input) {
+		// Si l'input est déjà validé, on n'effectue aucune autre action
+		if (input.classList.contains('was-validated')) {
+			return; // Sort immédiatement si déjà validé
+		}
+		
+		// Réinitialise la marge inférieure de l'élément parent
+		input.parentElement.style.marginBottom = '0px';
+		
+		// Supprime la classe 'is-invalid' si elle est présente
+		if (input.classList.contains('is-invalid')) {
+			input.classList.remove('is-invalid');
+		}
+		
+		// Ajoute la classe 'was-validated' si elle n'est pas déjà présente
+		if (!input.classList.contains('was-validated')) {
+			input.classList.add('was-validated');
+		}
+		
+		// Supprime l'élément suivant s'il est un 'SPAN'
+		if (input.nextElementSibling?.tagName === 'SPAN') {
+			input.nextElementSibling.remove();
+		}
+		
+		// Affichage en mode débogage
+		if (this.#FormValidatorDebug) {
+			console.log(`Removed error for inputName: ${input.getAttribute('name')}`);
+		}
+	}
+	
+	/* ========================================
 
     VALIDATION RULES (FUNCTIONS)
 
@@ -409,14 +444,18 @@ export class FormValidator {
      * @param  {string} name    - attribute name of the field (input)
      * @return {requestCallback} this.#setError(...) - The email is not valid
      */
-    email(name) {
-        if (!(/^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/).test(this.data[name])) {
-            this.#setError(name, "email", this.#errorMessages('email', {}))
-        }else{
-            const input = this.#getInput(name)
-            this.#removeHtmlError(input)
-        }
-    }
+	email(name) {
+		// Regex améliorée pour éviter le ReDoS
+		const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/;
+		
+		// Test de l'email avec la regex
+		if (!emailRegex.test(this.data[name])) {
+			this.#setError(name, "email", this.#errorMessages('email', {}));
+		} else {
+			const input = this.#getInput(name);
+			this.#removeHtmlError(input);
+		}
+	}
 
     /**
      * @param  {string} name - attribute name of the field (input)
