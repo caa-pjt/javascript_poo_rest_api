@@ -47,7 +47,6 @@ export class Table {
 		this.tableData = Array.isArray(data) ? data : [];
         this.updateTotalPages();
         this.render();
-		console.log('Table fetched data:', this.tableData);
     }
 
     /**
@@ -306,7 +305,7 @@ export class Table {
      */
     addRow(item) {
         if(!this.tableData.some(row => row.id === item.id))  this.tableData.push(item);
-		//this.tableData.push(item);
+
         this.updateTotalPages();
 
         // Naviguer vers la dernière page si l'article ajouté se trouve dans une nouvelle page

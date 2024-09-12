@@ -341,12 +341,12 @@ export class FormValidator {
             }
             const current = this.#getInput(input)
             if(this.errors === undefined || this.errors[input] === undefined){
-                this.#removeHtmlError(current)
+                this._removeHtmlError(current)
             }else{
                 if(Object.values(this.errors[input]).length > 0){
                     this.#setHtmlError(current, Object.values(this.errors[input])[0])
                 } else {
-                    this.#removeHtmlError(current);
+                    this._removeHtmlError(current);
                 }
             }
         }
@@ -357,37 +357,67 @@ export class FormValidator {
      * @param {HTMLElement} input   - Input HTML
      * @param {string} error        - Error text
      */
-    #setHtmlError(input, error) {
+	#setHtmlError(input, error) {
+		if (input.classList.contains('is-invalid')) {
+			this.#handleErrorDisplay(input, error);
+			return false;
+		}
+		
+		this.#removeWasValidatedClass(input);
+		this.#addIsInvalidClass(input);
+		
+		if (input.nextElementSibling === null) {
+			const span = this.#htmlError(input, error);
+			input.parentElement.appendChild(span);
+			input.parentElement.style.marginBottom = `-${span.offsetHeight}px`;
+		} else if (input.nextElementSibling.tagName !== 'SPAN') {
+			const span = this.#htmlError(input, error);
+			input.nextSibling.before(span);
+		}
+		
+		if (input.nextElementSibling.dataset.inputName === input.getAttribute('name')) {
+			const span = input.nextElementSibling;
+			span.innerText = '';
+			span.innerText = error;
+		}
 
-        if(input.classList.contains('is-invalid')){
-
-            if (input.nextElementSibling.tagName === 'SPAN') {
-                input.nextElementSibling.innerText === error ? null : input.nextElementSibling.innerText = error
-            }
-            return false
-        }
-
-        input.classList.contains('was-validated') ? input.classList.remove('was-validated') : null
-        input.classList.contains('is-invalid') ? null : input.classList.add('is-invalid')
-
-        if (input.nextElementSibling === null) {
-            const span = this.#htmlError(input, error)
-            input.parentElement.appendChild(span)
-            input.parentElement.style.marginBottom = `-${span.offsetHeight}px`
-
-        }else if (input.nextElementSibling.tagName !== 'SPAN'){
-            const span = this.#htmlError(input, error)
-            input.nextSibling.before(span)
-        }
-
-        if (input.nextElementSibling.dataset.inputName === input.getAttribute('name')) {
-            const span = input.nextElementSibling
-            span.innerText = ''
-            span.innerText = error
-        }
-
-        this.#FormValidatorDebug ? console.log(`Add error from inputName : ${input.getAttribute('name')}`) : null
-    }
+		if (this.#FormValidatorDebug) {
+			console.log(`Add error from inputName : ${inputName}`);
+		}
+	}
+	
+	/**
+	 * Remove the 'was-validated' class from the input
+	 * @param input
+	 */
+	#removeWasValidatedClass(input) {
+		if (input.classList.contains('was-validated')) {
+			input.classList.remove('was-validated');
+		}
+	}
+	
+	/**
+	 * Add the 'is-invalid' class to the input
+	 * @param input
+	 */
+	#addIsInvalidClass(input) {
+		if (!input.classList.contains('is-invalid')) {
+			input.classList.add('is-invalid');
+		}
+	}
+	
+	/**
+	 * Handle the display of the error message
+	 * @param input
+	 * @param error
+	 */
+	#handleErrorDisplay(input, error) {
+		if (input.nextElementSibling.tagName === 'SPAN') {
+			if (input.nextElementSibling.innerText !== error) {
+				input.nextElementSibling.innerText = error;
+			}
+		}
+	}
 
     /**
      *
@@ -408,9 +438,9 @@ export class FormValidator {
      *
      * @param {HTMLElement} input  - Input HTML
      */
-	#removeHtmlError(input) {
+	_removeHtmlError(input, checkWasValidated = true) {
 		// Si l'input est déjà validé, on n'effectue aucune autre action
-		if (input.classList.contains('was-validated')) {
+		if (input.classList.contains('was-validated') && checkWasValidated) {
 			return; // Sort immédiatement si déjà validé
 		}
 		
@@ -423,7 +453,7 @@ export class FormValidator {
 		}
 		
 		// Ajoute la classe 'was-validated' si elle n'est pas déjà présente
-		if (!input.classList.contains('was-validated')) {
+		if (!input.classList.contains('was-validated') && checkWasValidated) {
 			input.classList.add('was-validated');
 		}
 		
@@ -436,6 +466,11 @@ export class FormValidator {
 		if (this.#FormValidatorDebug) {
 			console.log(`Removed error for inputName: ${input.getAttribute('name')}`);
 		}
+	}
+	
+	_hasValidationRules(input) {
+		const inputName = input.getAttribute('name');
+		return this.options.validationRules.hasOwnProperty(inputName);
 	}
 	
 	/* ========================================
@@ -459,7 +494,7 @@ export class FormValidator {
             }
         } else {
             const input = this.#getInput(name)
-            this.#removeHtmlError(input)
+            this._removeHtmlError(input)
         }
     }
 
@@ -476,7 +511,7 @@ export class FormValidator {
 			this.#setError(name, "email", this.#errorMessages('email', {}));
 		} else {
 			const input = this.#getInput(name);
-			this.#removeHtmlError(input);
+			this._removeHtmlError(input);
 		}
 	}
 
@@ -488,14 +523,15 @@ export class FormValidator {
     min(name, min) {
         if (!parseInt(min)){
             console.error(`The parameter min is not a number`)
-        }else{
-            if (this.data[name].trim().length < min) {
-                this.#setError(name, "min", this.#errorMessages('min', { min: min }))
-            }else{
-                const input = this.#getInput(name)
-                this.#removeHtmlError(input)
-            }
+			return false
         }
+		if (this.data[name].trim().length < min) {
+			this.#setError(name, "min", this.#errorMessages('min', { min: min }))
+		}else{
+			const input = this.#getInput(name)
+			this._removeHtmlError(input)
+		}
+    
     }
 
     /**
@@ -506,14 +542,15 @@ export class FormValidator {
     max(name, max) {
         if (!parseInt(max)){
             console.error(`The parameter max is not a number`)
-        }else{
-            if (this.data[name].trim().length > max) {
-                this.#setError(name, "max", this.#errorMessages('max', { max: max }))
-            }else{
-                const input = this.#getInput(name)
-                this.#removeHtmlError(input)
-            }
+			return false
         }
+		
+		if (this.data[name].trim().length > max) {
+			this.#setError(name, "max", this.#errorMessages('max', { max: max }))
+		}else {
+			const input = this.#getInput(name)
+			this._removeHtmlError(input)
+		}
 
     }
     /**
@@ -527,7 +564,7 @@ export class FormValidator {
             this.#setError(name, "match", this.#errorMessages('match', {}))
         }else{
             const input = this.#getInput(name)
-            this.#removeHtmlError(input)
+            this._removeHtmlError(input)
         }
 
     }

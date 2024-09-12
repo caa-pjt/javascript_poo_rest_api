@@ -174,11 +174,13 @@ export class ModalFormBuilder extends FormBuilder {
      */
     hideModal() {
         this.modal.style.display = "none";
+		
+		this.form.querySelectorAll('input').forEach((input) => {
+			if (this.formValidator._hasValidationRules(input)) {
+				this.formValidator._removeHtmlError(input, false);
+			}
+		});
 
-        const hiddenIdInput = this.form.querySelector('input[name="id"]');
-        if (hiddenIdInput) {
-            hiddenIdInput.value = "";
-        }
         this.form.reset();
     }
 
