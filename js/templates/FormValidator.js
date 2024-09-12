@@ -220,36 +220,59 @@ export class FormValidator {
      * @param {string} rules - Validation rule and function to call
      */
 	#rulesValidator(input, rules) {
-		// Vérifie que l'input a bien des règles de validation définies
+		if (!this.#hasValidationRules(input)) {
+			return; // Early return si aucune règle de validation n'existe
+		}
+		
+		rules.forEach((ruleString) => {
+			const { func, param } = this.#parseRule(ruleString);
+			this.#applyRule(func, param, input);
+		});
+		
+		if (this.#FormValidatorDebug) {
+			console.log(input);
+		}
+	}
+	
+	/**
+	 * Sub-function to check if the input has validation rules
+	 * @param input
+	 * @returns {boolean}
+	 */
+	#hasValidationRules(input) {
 		if (!this.options.validationRules.hasOwnProperty(input)) {
 			if (this.#FormValidatorDebug) {
 				console.log(`The "${input}" has no defined validation rules. Ignored.`);
 			}
-			return; // Si pas de règles définies, on ignore cet input
+			return false;
 		}
-		
-		for (let i = 0; i < rules.length; i++) {
-			let rule = rules[i].split(':');
-			
-			if (rule.length > 1) {
-				const func = rule[0];
-				const param = rule[1];
-				if (typeof this[func] === 'function') {
-					this[func](input, param);
-				} else {
-					console.error(`The function "${func}" do not exist`);
-				}
-			} else {
-				if (typeof this[rule] === 'function') {
-					this[rule](input);
-				} else {
-					console.error(`The validation function "${rule}" do not exist.`);
-				}
-			}
-			
-			if (this.#FormValidatorDebug) {
-				console.log(input);
-			}
+		return true;
+	}
+	
+	/**
+	 * Sub-function to parse the validation rule
+	 * @param ruleString
+	 * @returns {{func: *, param: (*|null)}}
+	 */
+	#parseRule(ruleString) {
+		let rule = ruleString.split(':');
+		return {
+			func: rule[0],
+			param: rule[1] || null,
+		};
+	}
+	
+	/**
+	 * Sub-function to apply the validation rule
+	 * @param func
+	 * @param param
+	 * @param input
+	 */
+	#applyRule(func, param, input) {
+		if (typeof this[func] === 'function') {
+			param ? this[func](input, param) : this[func](input);
+		} else {
+			console.error(`The function "${func}" does not exist.`);
 		}
 	}
 	

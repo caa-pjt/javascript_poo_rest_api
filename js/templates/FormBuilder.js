@@ -63,31 +63,44 @@ export class FormBuilder {
     }
 
     /**
-     *
+     * Dispatche les éléments du formulaire
      * @param {Object} field - Liste d'options
      * @returns this
      */
-    dispatche(field) {
-        if (field.id === undefined && field.name != undefined) {
-            field.id = field.name;
-        }
-        if (field.label) {
-            const label = this.render("label", { for: field.id, text: field.label });
-            if (this.options.surround != false || (field.options && field.options.surround)) {
-                this.surround(label, field.options ? field.options.surround : null);
-            } else {
-                this.form.appendChild(label);
-            }
-        }
-
-        let formHtml = this.render(field.field_type, field);
-
-        if (this.options.surround != false || (field.options && field.options.surround)) {
-            this.surround(formHtml, field.options ? field.options.surround : null);
-        } else {
-            return this.form.appendChild(formHtml);
-        }
-    }
+	dispatche(field) {
+		this.#ensureFieldHasId(field);
+		
+		if (field.label) {
+			const label = this.render("label", { for: field.id, text: field.label });
+			this.#handleSurround(label, field.options?.surround);
+		}
+		
+		const formHtml = this.render(field.field_type, field);
+		this.#handleSurround(formHtml, field.options?.surround);
+	}
+	
+	/**
+	 * Ensure that the field has an id
+	 * @param field
+	 */
+	#ensureFieldHasId(field) {
+		if (field.id === undefined && field.name !== undefined) {
+			field.id = field.name;
+		}
+	}
+	
+	/**
+	 * Sub-function to manage entourage or add directly to form
+	 * @param element
+	 * @param surroundOption
+	 */
+	#handleSurround(element, surroundOption) {
+		if (this.options.surround !== false || surroundOption) {
+			this.surround(element, surroundOption || null);
+		} else {
+			this.form.appendChild(element);
+		}
+	}
 
     /**
      *
