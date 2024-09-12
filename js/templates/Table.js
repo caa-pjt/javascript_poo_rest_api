@@ -305,7 +305,7 @@ export class Table {
      * @param {Object} item - Données de la ligne à ajouter.
      */
     addRow(item) {
-        // if(this.tableData.some(row => row.id === item.id))  return;
+        if(!this.tableData.some(row => row.id === item.id))  this.tableData.push(item);
 		//this.tableData.push(item);
         this.updateTotalPages();
 
