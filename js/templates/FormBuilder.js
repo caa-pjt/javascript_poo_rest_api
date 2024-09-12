@@ -30,10 +30,12 @@ export class FormBuilder {
      * @property {string} options.surround.class - surround div className
      */
     constructor(options) {
-        this.options = Object.assign({}, this.options, options.options);
-        this.formOptions = Object.assign({}, this.form, options.form);
-
-        this.form = null;
+		this.options = { ...this.options, ...options.options };
+		this.formOptions = { ...this.formOptions, ...options.form };
+		
+		
+		
+		this.form = null;
 
         this.setForm();
     }

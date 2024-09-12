@@ -59,7 +59,7 @@ export class FormValidator {
      * @param options
      */
     constructor(options = {}) {
-		this.options = Object.assign({}, this.options || {}, options);
+		this.options = { ...this.options, ...options };
         this.errors = {};
         this.debounceDelay = 400; // Default debounce delay in milliseconds
         this.inputListeners = new Map(); // Map to store input listeners
